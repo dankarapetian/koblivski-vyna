@@ -8,10 +8,6 @@ export function getEnvVar(name: string, required = true) {
   return value || "";
 }
 
-export const MONOBANK_API_TOKEN = getEnvVar("MONOBANK_API_TOKEN", false);
-export const MONOBANK_PUBKEY_BASE64 = getEnvVar("MONOBANK_PUBKEY_BASE64", false);
-export const MONOBANK_PUBKEY_NAME = getEnvVar("MONOBANK_PUBKEY_NAME", false);
-export const MONOBANK_PUBKEY_EXPIRES_AT = getEnvVar("MONOBANK_PUBKEY_EXPIRES_AT", false);
 export const TELEGRAM_BOT_TOKEN = getEnvVar("TELEGRAM_BOT_TOKEN", false);
 export const TELEGRAM_CHAT_ID = getEnvVar("TELEGRAM_CHAT_ID", false);
 export const TELEGRAM_BOT_USERNAME = getEnvVar("TELEGRAM_BOT_USERNAME", false);
