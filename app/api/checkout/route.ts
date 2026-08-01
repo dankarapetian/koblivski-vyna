@@ -1,6 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, TELEGRAM_CHAT_ID } from "@/lib/env";
 import { applyRateLimit, getClientIpForLogs, logSuspiciousRequest } from "@/lib/security";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import { getCatalogProductById } from "@/lib/catalog";
+
+function sanitizeText(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/<[^>]*>/g, "").trim();
+}
+
+function isValidOrderPayload(payload: unknown): payload is {
+  message: string;
+  total?: number;
+  items?: Array<{ name: string; qty: number; price: number }>;
+  customerName?: string;
+  customerSurname?: string;
+  customerPhone?: string;
+  deliveryType?: string;
+  region?: string;
+  district?: string;
+  city?: string;
+  street?: string;
+  warehouse?: string;
+  notes?: string;
+} {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const candidate = payload as Record<string, unknown>;
+  const message = sanitizeText(candidate.message);
+  const items = Array.isArray(candidate.items) ? candidate.items : [];
+  const total = typeof candidate.total === "number" ? candidate.total : Number(candidate.total);
+
+  if (!message || !Number.isFinite(total) || total <= 0) {
+    return false;
+  }
+
+  if (!items.length) {
+    return false;
+  }
+
+  return items.every((item) => {
+    if (!item || typeof item !== "object") {
+      return false;
+    }
+
+    const entry = item as Record<string, unknown>;
+    return (
+      typeof entry.name === "string" &&
+      typeof entry.qty === "number" &&
+      entry.qty > 0 &&
+      typeof entry.price === "number" &&
+      entry.price >= 0
+    );
+  });
+}
 
 function buildTelegramLink(username: string | undefined, message: string) {
   const normalizedUsername = username?.trim().replace(/^@/, "");
@@ -88,16 +146,66 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = await request.json();
+
+    if (!isValidOrderPayload(payload)) {
+      return NextResponse.json({ error: "Некоректні дані замовлення." }, { status: 400 });
+    }
+
     const botToken = TELEGRAM_BOT_TOKEN?.trim();
     const chatId = TELEGRAM_CHAT_ID?.trim();
     const botUsername = TELEGRAM_BOT_USERNAME?.trim();
-    const orderText = buildOrderText(payload);
+    const trustedItems = (payload.items ?? []).map((item) => {
+      const product = getCatalogProductById(item.name);
+      const unitPrice = product?.price ?? 0;
+      return {
+        id: product?.id ?? item.name,
+        name: product?.name ?? item.name,
+        qty: item.qty,
+        price: unitPrice,
+      };
+    });
+
+    const trustedTotal = trustedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const normalizedPayload = {
+      ...payload,
+      total: trustedTotal,
+      items: trustedItems,
+      message: payload.message,
+    };
+    const orderText = buildOrderText(normalizedPayload);
+    const client = createSupabaseServerClient();
+    const orderId = crypto.randomUUID();
+
+    if (client) {
+      const { error } = await client.from("orders").insert({
+        id: orderId,
+        customer_name: normalizedPayload.customerName ?? null,
+        customer_surname: normalizedPayload.customerSurname ?? null,
+        customer_phone: normalizedPayload.customerPhone ?? null,
+        delivery_type: normalizedPayload.deliveryType ?? "pickup",
+        region: normalizedPayload.region ?? null,
+        district: normalizedPayload.district ?? null,
+        city: normalizedPayload.city ?? null,
+        street: normalizedPayload.street ?? null,
+        warehouse: normalizedPayload.warehouse ?? null,
+        notes: normalizedPayload.notes ?? null,
+        total: normalizedPayload.total ?? 0,
+        items: normalizedPayload.items ?? [],
+        message: normalizedPayload.message ?? null,
+        status: "new",
+        created_at: new Date().toISOString(),
+      });
+
+      if (error) {
+        throw new Error(`Supabase insert failed: ${error.message}`);
+      }
+    }
 
     if (!botToken || !chatId) {
       const telegramUrl = buildTelegramLink(botUsername, orderText);
 
       if (telegramUrl) {
-        return NextResponse.json({ success: true, telegramUrl, fallback: true });
+        return NextResponse.json({ success: true, telegramUrl, fallback: true, orderId });
       }
 
       return NextResponse.json(
@@ -131,7 +239,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, orderId });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
 

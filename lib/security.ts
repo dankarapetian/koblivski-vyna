@@ -5,9 +5,13 @@ type RateLimitEntry = {
   resetAt: number;
 };
 
+type RateLimitRequest = Pick<NextRequest, "headers"> & {
+  nextUrl: { pathname: string };
+};
+
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-function getClientIp(request: NextRequest) {
+function getClientIp(request: RateLimitRequest) {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
   if (forwarded) {
@@ -17,7 +21,7 @@ function getClientIp(request: NextRequest) {
   return request.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
-export function applyRateLimit(request: NextRequest, options: { limit: number; windowMs: number }) {
+export function applyRateLimit(request: RateLimitRequest, options: { limit: number; windowMs: number }) {
   const ip = getClientIp(request);
   const key = `${request.nextUrl.pathname}:${ip}`;
   const now = Date.now();
@@ -40,6 +44,28 @@ export function logSuspiciousRequest(details: Record<string, unknown>) {
   console.warn("[security] suspicious request", details);
 }
 
-export function getClientIpForLogs(request: NextRequest) {
+export function getClientIpForLogs(request: RateLimitRequest) {
   return getClientIp(request);
+}
+
+export function createSecurityHeaders() {
+  return [
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    { key: "X-Frame-Options", value: "DENY" },
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    {
+      key: "Content-Security-Policy",
+      value:
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self' https:; " +
+        "object-src 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self';",
+    },
+  ];
 }

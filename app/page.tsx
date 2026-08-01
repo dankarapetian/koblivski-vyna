@@ -3,134 +3,15 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
+import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
 
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  categoryId: string;
-  sort: string;
-  description: string;
-  image: string;
-  price: number;
-};
+type Product = CatalogProduct;
 
 type CartItem = Product & {
   qty: number;
 };
 
-const products: Product[] = [
-  {
-    id: "bile-vyno-classic",
-    name: "Біле вино Classic",
-    category: "Білі вина",
-    categoryId: "weisswein",
-    sort: "Classic",
-    description: "Свіже, витончене вино для рибних страв, сиру та легких перекусів.",
-    image: "/images/bile-vyno.jpg",
-    price: 1299,
-  },
-  {
-    id: "bile-vyno-trocken",
-    name: "Біле вино Trocken",
-    category: "Білі вина",
-    categoryId: "weisswein",
-    sort: "Trocken",
-    description: "Сухе біле вино з яскравою свіжістю та тонким ароматом.",
-    image: "/images/bile-vyno.jpg",
-    price: 1399,
-  },
-  {
-    id: "bile-vyno-halbtrocken",
-    name: "Біле вино Halbtrocken",
-    category: "Білі вина",
-    categoryId: "weisswein",
-    sort: "Halbtrocken",
-    description: "М’яке біле вино з легкою фруктовістю та комфортною солодкістю.",
-    image: "/images/bile-vyno.jpg",
-    price: 1399,
-  },
-  {
-    id: "krasne-vino-classic",
-    name: "Червоне вино Classic",
-    category: "Червоні вина",
-    categoryId: "rotwein",
-    sort: "Classic",
-    description: "Повне, м’якше та ароматне вино для особливих вечорів.",
-    image: "/images/krasne-vino.jpg",
-    price: 1399,
-  },
-  {
-    id: "krasne-vino-reserve",
-    name: "Червоне вино Reserve",
-    category: "Червоні вина",
-    categoryId: "rotwein",
-    sort: "Reserve",
-    description: "Міцне червоне вино з глибоким характером і витонченим фіналом.",
-    image: "/images/krasne-vino.jpg",
-    price: 1699,
-  },
-  {
-    id: "roze-vino-classic",
-    name: "Рожеве вино Classic",
-    category: "Рожеві вина",
-    categoryId: "rose",
-    sort: "Classic",
-    description: "Легке, фруктове та сучасне вино для літа та свят.",
-    image: "/images/roze-vino.jpg",
-    price: 1199,
-  },
-  {
-    id: "igriste-vino-brut",
-    name: "Ігристе вино Brut",
-    category: "Ігристі вина",
-    categoryId: "schaumwein",
-    sort: "Brut",
-    description: "Ніжна перлівка, свіжість і святковий настрій у кожній келиху.",
-    image: "/images/igriste-vino.jpg",
-    price: 1499,
-  },
-  {
-    id: "igriste-vino-demisec",
-    name: "Ігристе вино Demi-Sec",
-    category: "Ігристі вина",
-    categoryId: "schaumwein",
-    sort: "Demi-Sec",
-    description: "Напівсухе ігристе вино з м’якою фруктовістю.",
-    image: "/images/igriste-vino.jpg",
-    price: 1599,
-  },
-  {
-    id: "chacha-classic",
-    name: "Чача Classic",
-    category: "Спиртні напої",
-    categoryId: "spirituosen",
-    sort: "Classic",
-    description: "Традиційна спеціальність з яскравим характером і глибоким смаком.",
-    image: "/images/chacha.jpg",
-    price: 1899,
-  },
-  {
-    id: "konjak-classic",
-    name: "Коньяк Classic",
-    category: "Спиртні напої",
-    categoryId: "spirituosen",
-    sort: "Classic",
-    description: "Елегантний, теплий і м’який у фіналі напій для особливих моментів.",
-    image: "/images/konjak.jpg",
-    price: 2499,
-  },
-  {
-    id: "rom-classic",
-    name: "Ром Classic",
-    category: "Спиртні напої",
-    categoryId: "spirituosen",
-    sort: "Classic",
-    description: "Солодкувата пряність з глибиною і приємним ароматом.",
-    image: "/images/rom.jpg",
-    price: 2199,
-  },
-];
+const products: Product[] = catalogProducts;
 
 const categories = [
   {
@@ -173,6 +54,7 @@ export default function Home() {
   const [customerSurname, setCustomerSurname] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [region, setRegion] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [district, setDistrict] = useState("");
   const [city, setCity] = useState("");
   const [warehouse, setWarehouse] = useState("");
@@ -232,7 +114,17 @@ export default function Home() {
   }
 
   async function submitOrder() {
-    if (cart.length === 0) {
+    if (cart.length === 0 || honeypot) {
+      return;
+    }
+
+    if (!customerName.trim() || !customerPhone.trim()) {
+      window.alert("Будь ласка, вкажіть ім’я та телефон.");
+      return;
+    }
+
+    if (total <= 0) {
+      window.alert("Сума замовлення має бути більшою за нуль.");
       return;
     }
 
@@ -276,7 +168,12 @@ export default function Home() {
     const payload = {
       message,
       total,
-      items: cart,
+      items: cart.map((item) => ({
+        id: item.id,
+        name: item.name,
+        qty: item.qty,
+        price: item.price,
+      })),
       deliveryType,
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
       ...(customerSurname.trim() ? { customerSurname: customerSurname.trim() } : {}),
@@ -629,6 +526,15 @@ export default function Home() {
                           onChange={(event) => setCustomerName(event.target.value)}
                           placeholder="Ім’я"
                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                        />
+                        <input
+                          type="text"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={honeypot}
+                          onChange={(event) => setHoneypot(event.target.value)}
+                          className="absolute left-[-9999px] h-0 w-0 opacity-0"
+                          aria-hidden="true"
                         />
                         <input
                           value={customerSurname}
