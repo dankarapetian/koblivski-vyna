@@ -118,9 +118,23 @@ export default function Home() {
       return;
     }
 
-    if (!customerName.trim() || !customerPhone.trim()) {
+    const trimmedName = customerName.trim();
+    const trimmedPhone = customerPhone.trim();
+    const trimmedAddress =
+      deliveryType === "nova-poshta"
+        ? [region.trim(), district.trim(), city.trim(), street.trim(), warehouse.trim()].filter(Boolean).join(", ")
+        : "Самовивіз";
+
+    if (!trimmedName || !trimmedPhone) {
       window.alert("Будь ласка, вкажіть ім’я та телефон.");
       return;
+    }
+
+    if (!trimmedAddress || trimmedAddress === "Самовивіз") {
+      if (deliveryType === "nova-poshta") {
+        window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
+        return;
+      }
     }
 
     if (total <= 0) {

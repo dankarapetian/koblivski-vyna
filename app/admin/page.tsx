@@ -6,6 +6,21 @@ function getPassword() {
   return typeof window !== "undefined" ? window.localStorage.getItem("admin-password") ?? "" : "";
 }
 
+function formatOrderTotal(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "—";
+  }
+
+  return `${(value / 100).toFixed(2).replace(".", ",")} грн`;
+}
+
+function normalizeOrderTotal(order: Record<string, unknown>) {
+  const candidate = order.total ?? order.amount ?? order.total_amount ?? order.grand_total;
+  const total = typeof candidate === "number" ? candidate : Number(candidate ?? 0);
+
+  return Number.isFinite(total) ? total : 0;
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authorized, setAuthorized] = useState(false);
@@ -30,7 +45,12 @@ export default function AdminPage() {
       return;
     }
 
-    setOrders(data.orders || []);
+    const normalizedOrders = (data.orders || []).map((order: Record<string, unknown>) => ({
+      ...order,
+      total: normalizeOrderTotal(order),
+    }));
+
+    setOrders(normalizedOrders);
   }
 
   function login() {
@@ -97,7 +117,7 @@ export default function AdminPage() {
                   <td className="p-3">{order.id}</td>
                   <td className="p-3">{[order.customer_name, order.customer_surname].filter(Boolean).join(" ") || "—"}</td>
                   <td className="p-3">{order.customer_phone || "—"}</td>
-                  <td className="p-3">{order.total ? `${order.total} грн` : "—"}</td>
+                  <td className="p-3">{formatOrderTotal(normalizeOrderTotal(order))}</td>
                   <td className="p-3">{order.status || "new"}</td>
                   <td className="p-3">{order.created_at ? new Date(order.created_at).toLocaleString("uk-UA") : "—"}</td>
                 </tr>

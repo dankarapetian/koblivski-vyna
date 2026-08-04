@@ -16,3 +16,15 @@ export const ADMIN_PASSWORD = getEnvVar("ADMIN_PASSWORD", false);
 export const NEXT_PUBLIC_SUPABASE_URL = getEnvVar("NEXT_PUBLIC_SUPABASE_URL", false);
 export const NEXT_PUBLIC_SUPABASE_ANON_KEY = getEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY", false);
 export const SUPABASE_SERVICE_ROLE_KEY = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", false);
+
+export function getTelegramBotToken() {
+  return process.env.TELEGRAM_BOT_TOKEN?.trim() || "";
+}
+
+export function getTelegramChatId() {
+  return process.env.TELEGRAM_CHAT_ID?.trim() || "";
+}
+
+export function getTelegramBotUsername() {
+  return process.env.TELEGRAM_BOT_USERNAME?.trim() || "";
+}

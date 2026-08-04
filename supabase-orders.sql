@@ -10,7 +10,7 @@ create table if not exists public.orders (
   street text,
   warehouse text,
   notes text,
-  total integer default 0,
+  total numeric(10,2) default 0,
   items jsonb default '[]'::jsonb,
   message text,
   status text default 'new',

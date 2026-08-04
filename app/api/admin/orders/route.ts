@@ -21,5 +21,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ orders: data || [] });
+  const orders = (data || []).map((order: Record<string, unknown>) => {
+    const candidate = order.total ?? order.amount ?? order.total_amount ?? order.grand_total;
+    const total = typeof candidate === "number" ? candidate : Number(candidate ?? 0);
+
+    return {
+      ...order,
+      total: Number.isFinite(total) ? total : 0,
+    };
+  });
+
+  return NextResponse.json({ orders });
 }
