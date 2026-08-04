@@ -1,5 +1,146 @@
 @import "tailwindcss";
 
+
+.ageGate {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(10, 5, 3, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ageGateBox {
+  width: 100%;
+  max-width: 460px;
+
+  padding: 38px 30px;
+
+  text-align: center;
+  color: white;
+
+  background: linear-gradient(
+    145deg,
+    rgba(45, 27, 18, 0.98),
+    rgba(20, 12, 8, 0.98)
+  );
+
+  border: 1px solid rgba(212, 175, 100, 0.65);
+  border-radius: 28px;
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ageGateLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 82px;
+  height: 82px;
+
+  margin: 0 auto 20px;
+
+  font-size: 40px;
+
+  background: rgba(212, 175, 100, 0.12);
+  border: 1px solid rgba(212, 175, 100, 0.45);
+  border-radius: 50%;
+}
+
+.ageGateBox h2 {
+  margin: 0 0 16px;
+
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.ageGateBox p {
+  margin: 0 0 28px;
+
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ageGateBox button {
+  width: 100%;
+
+  padding: 15px 20px;
+
+  font-size: 16px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  border-radius: 14px;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    background 0.2s ease;
+}
+
+.ageGateBox button:hover {
+  transform: translateY(-2px);
+}
+
+.ageGateBox button:active {
+  transform: translateY(0);
+}
+
+.ageYes {
+  margin-bottom: 12px;
+
+  color: #21140d;
+  background: linear-gradient(135deg, #e7c47d, #c99b46);
+  border: 1px solid #d6aa59;
+}
+
+.ageYes:hover {
+  opacity: 0.92;
+}
+
+.ageNo {
+  color: white;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.ageNo:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+@media (max-width: 520px) {
+  .ageGate {
+    padding: 16px;
+  }
+
+  .ageGateBox {
+    padding: 30px 20px;
+    border-radius: 22px;
+  }
+
+  .ageGateBox h2 {
+    font-size: 24px;
+  }
+
+  .ageGateLogo {
+    width: 70px;
+    height: 70px;
+    font-size: 34px;
+  }
+}
 :root {
   --background: #ffffff;
   --foreground: #171717;
