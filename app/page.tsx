@@ -249,7 +249,7 @@ export default function Home() {
 
             <div>
               <p className="text-lg font-black tracking-wide md:text-xl">Коблівські Вина</p>
-              <p className="text-xs text-white/60">Українські вина та спеціальності</p>
+              <p className="text-xs text-white/60">Українські вина </p>
             </div>
           </div>
 
@@ -296,7 +296,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-lg text-white/75 md:text-xl">
-              Оберіть улюблені напої, додайте їх до кошика і замовте через Telegram без зайвих кроків.
+              Оберіть улюблені напої, додайте їх до кошика і замовте без зайвих кроків.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
