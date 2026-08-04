@@ -97,7 +97,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Вишня, слива, чорна смородина.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8500,
   },
   {
@@ -107,7 +107,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Смородина, полуниця, стиглі ягоди.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7500,
   },
   {
@@ -117,7 +117,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Черешня, вишня, ягідне варення.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png ",
     price: 8000,
   },
   {
@@ -127,7 +127,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Сухе",
     description: "Чорнослив, ожина, спеції, шоколад.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8500,
   },
   {
@@ -137,7 +137,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Сухе",
     description: "Чорна смородина, дуб, шоколад, вишня.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8500,
   },
   {
@@ -147,7 +147,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Ожина, слива, чорна смородина.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7500,
   },
   {
@@ -157,7 +157,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Вишня, чорні ягоди, м’які таніни.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7500,
   },
   {
@@ -167,7 +167,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Малина, ожина, чорниця.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7500,
   },
   {
@@ -177,7 +177,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсухе",
     description: "Смородина, чорниця, спеції.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7500,
   },
   {
@@ -187,7 +187,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Солодке",
     description: "Чорнослив, спеції, бархатистий смак.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8000,
   },
   {
@@ -197,7 +197,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Полуниця, клубника, виноград Ізабелла.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 7000,
   },
   {
@@ -207,7 +207,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Напівсолодке",
     description: "Кориця, гвоздика, апельсин, червоні ягоди.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8500,
   },
   {
@@ -217,7 +217,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "rotwein",
     sort: "Десертне",
     description: "Амаретто, мигдаль, вишня, полуниця, ваніль.",
-    image: "/images/krasne-vino.jpg",
+    image: "/images/fon-red-wine.png",
     price: 8500,
   },
   {
