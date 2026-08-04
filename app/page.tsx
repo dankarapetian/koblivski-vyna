@@ -1,5 +1,6 @@
 "use client";
 
+import AgeGate from "./AgeGate";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
@@ -45,6 +46,7 @@ function formatPrice(cents: number) {
   return `${(cents / 100).toFixed(2).replace(".", ",")} грн`;
 }
 
+
 export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -60,6 +62,8 @@ export default function Home() {
   const [warehouse, setWarehouse] = useState("");
   const [street, setStreet] = useState("");
   const [notes, setNotes] = useState("");
+
+  
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => product.categoryId === activeCategory);
@@ -233,6 +237,8 @@ export default function Home() {
   }
 
   return (
+    <>
+  <AgeGate />
     <main className="min-h-screen bg-black text-white">
       <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
@@ -339,7 +345,7 @@ export default function Home() {
           <Truck className="mb-4 text-red-300" />
           <h3 className="text-xl font-bold">Швидка комунікація</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-            Замовлення оформлюється просто: обираєте товари й пишете нам у Telegram.
+            Замовлення оформлюється просто
           </p>
         </div>
 
@@ -347,7 +353,7 @@ export default function Home() {
           <MessageCircle className="mb-4 text-red-300" />
           <h3 className="text-xl font-bold">Зручне замовлення</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-            Після натискання на кнопку ваш Telegram відкриється з готовим текстом замовлення.
+           Для зручного оформлення замовлення натисніть кнопку нижче, і ми одразу отримаємо ваше замовлення у готовому форматі.
           </p>
         </div>
       </section>
@@ -648,6 +654,10 @@ export default function Home() {
           </>
         )}
       </AnimatePresence>
+  
     </main>
-  );
+    </>);
 }
+
+
+
