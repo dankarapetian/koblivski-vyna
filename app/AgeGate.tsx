@@ -2,7 +2,21 @@
 
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "ageVerified";
+const STORAGE_KEY = "ageVerifiedAt";
+const EXPIRE_MS = 3 * 60 * 60 * 1000;
+
+function isVerifiedRecently(value: string | null) {
+  if (!value) {
+    return false;
+  }
+
+  const timestamp = Number(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return false;
+  }
+
+  return Date.now() - timestamp < EXPIRE_MS;
+}
 
 export default function AgeGate() {
   const [visible, setVisible] = useState(false);
@@ -13,7 +27,7 @@ export default function AgeGate() {
     }
 
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "true") {
+    if (isVerifiedRecently(stored)) {
       setVisible(false);
       return;
     }
@@ -26,7 +40,7 @@ export default function AgeGate() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, "true");
+    window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
     setVisible(false);
   }
 
