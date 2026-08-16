@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "ageVerifiedAt";
-const EXPIRE_MS = 3 * 60 * 60 * 1000;
+const EXPIRE_MS = 3 * 24 * 60 * 60 * 1000;
 
 function isVerifiedRecently(value: string | null) {
   if (!value) {
@@ -27,12 +27,15 @@ export default function AgeGate() {
     }
 
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (isVerifiedRecently(stored)) {
-      setVisible(false);
-      return;
-    }
+    if (isVerifiedRecently(stored)) return;
 
-    setVisible(true);
+    document.body.style.overflow = "hidden";
+    const timer = window.setTimeout(() => setVisible(true), 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.body.style.overflow = "";
+    };
   }, []);
 
   function handleYes() {
@@ -41,6 +44,7 @@ export default function AgeGate() {
     }
 
     window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    document.body.style.overflow = "";
     setVisible(false);
   }
 

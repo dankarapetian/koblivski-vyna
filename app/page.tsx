@@ -1,7 +1,7 @@
 "use client";
 
 import AgeGate from "./AgeGate";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
@@ -62,6 +62,13 @@ export default function Home() {
   const [warehouse, setWarehouse] = useState("");
   const [street, setStreet] = useState("");
   const [notes, setNotes] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const formStartedAt = useRef(0);
+
+  useEffect(() => {
+    formStartedAt.current = Date.now();
+  }, []);
 
   
 
@@ -87,7 +94,7 @@ export default function Home() {
 
       if (existing) {
         return oldCart.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+          item.id === product.id ? { ...item, qty: Math.min(20, item.qty + 1) } : item
         );
       }
 
@@ -100,7 +107,7 @@ export default function Home() {
   function increaseQty(id: string) {
     setCart((oldCart) =>
       oldCart.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
+        item.id === id ? { ...item, qty: Math.min(20, item.qty + 1) } : item
       )
     );
   }
@@ -118,7 +125,7 @@ export default function Home() {
   }
 
   async function submitOrder() {
-    if (cart.length === 0 || honeypot) {
+    if (cart.length === 0 || honeypot || submitting) {
       return;
     }
 
@@ -134,6 +141,17 @@ export default function Home() {
       return;
     }
 
+    const phoneDigits = trimmedPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      window.alert("Будь ласка, перевірте номер телефону.");
+      return;
+    }
+
+    if (!privacyAccepted) {
+      window.alert("Потрібна згода на обробку даних для оформлення замовлення.");
+      return;
+    }
+
     if (!trimmedAddress || trimmedAddress === "Самовивіз") {
       if (deliveryType === "nova-poshta") {
         window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
@@ -146,51 +164,13 @@ export default function Home() {
       return;
     }
 
-    const deliveryText =
-      deliveryType === "nova-poshta"
-        ? [
-            "Доставка: Нова Пошта",
-            region ? `Область: ${region}` : "Область: не вказано",
-            district ? `Район: ${district}` : "Район: не вказано",
-            city ? `Місто: ${city}` : "Місто: не вказано",
-            street ? `Вулиця: ${street}` : "Вулиця: не вказано",
-            warehouse ? `Відділення: ${warehouse}` : "Відділення: не вказано",
-          ].join("\n")
-        : "Доставка: Самовивіз";
-
-    const paymentText = [
-      "Оплата: переказ на картку",
-      "Реквізити для переказу: уточнимо після оформлення замовлення.",
-    ].join("\n");
-
-    const lines = cart.map((item) => `• ${item.name} × ${item.qty} — ${formatPrice(item.price * item.qty)}`);
-    const message = [
-      "Нове замовлення з сайту Коблівські Вина",
-      "",
-      `Клієнт: ${customerName || "не вказано"} ${customerSurname || ""}`.trim(),
-      `Телефон: ${customerPhone || "не вказано"}`,
-      "",
-      ...lines,
-      "",
-      `Загальна сума: ${formatPrice(total)}`,
-      "",
-      deliveryText,
-      paymentText,
-      notes ? `\nПримітка: ${notes}` : "",
-      "",
-      "Будь ласка, зв’яжіться зі мною для підтвердження доставки.",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
     const payload = {
-      message,
-      total,
+      requestId: crypto.randomUUID(),
+      startedAt: formStartedAt.current,
+      website: honeypot,
       items: cart.map((item) => ({
         id: item.id,
-        name: item.name,
         qty: item.qty,
-        price: item.price,
       })),
       deliveryType,
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
@@ -209,12 +189,14 @@ export default function Home() {
     };
 
     try {
+      setSubmitting(true);
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        credentials: "same-origin",
       });
 
       const data = await response.json().catch(() => null);
@@ -227,12 +209,17 @@ export default function Home() {
       if (data?.telegramUrl) {
         window.open(data.telegramUrl, "_blank", "noopener,noreferrer");
         window.alert("Замовлення підготовлено. Відкриваємо Telegram.");
+        setCart([]);
         return;
       }
 
       window.alert("Замовлення відправлено. Ми зв’яжемося з вами найближчим часом.");
+      setCart([]);
+      setNotes("");
     } catch {
       window.alert("Не вдалося надіслати замовлення. Спробуйте ще раз.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -545,6 +532,8 @@ export default function Home() {
                           value={customerName}
                           onChange={(event) => setCustomerName(event.target.value)}
                           placeholder="Ім’я"
+                          autoComplete="given-name"
+                          maxLength={80}
                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                         />
                         <input
@@ -555,17 +544,24 @@ export default function Home() {
                           onChange={(event) => setHoneypot(event.target.value)}
                           className="absolute left-[-9999px] h-0 w-0 opacity-0"
                           aria-hidden="true"
+                          name="website"
                         />
                         <input
                           value={customerSurname}
                           onChange={(event) => setCustomerSurname(event.target.value)}
                           placeholder="Прізвище"
+                          autoComplete="family-name"
+                          maxLength={80}
                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                         />
                         <input
                           value={customerPhone}
                           onChange={(event) => setCustomerPhone(event.target.value)}
                           placeholder="Телефон"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          maxLength={30}
                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                         />
                       </div>
@@ -588,6 +584,7 @@ export default function Home() {
                             value={region}
                             onChange={(event) => setRegion(event.target.value)}
                             placeholder="Область"
+                            maxLength={100}
                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                           />
 
@@ -595,6 +592,7 @@ export default function Home() {
                             value={district}
                             onChange={(event) => setDistrict(event.target.value)}
                             placeholder="Район / район міста"
+                            maxLength={100}
                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                           />
 
@@ -602,6 +600,7 @@ export default function Home() {
                             value={city}
                             onChange={(event) => setCity(event.target.value)}
                             placeholder="Місто"
+                            maxLength={100}
                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                           />
 
@@ -609,6 +608,7 @@ export default function Home() {
                             value={street}
                             onChange={(event) => setStreet(event.target.value)}
                             placeholder="Вулиця, номер будинку"
+                            maxLength={160}
                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                           />
 
@@ -616,15 +616,16 @@ export default function Home() {
                             value={warehouse}
                             onChange={(event) => setWarehouse(event.target.value)}
                             placeholder="Відділення Нової Пошти"
+                            maxLength={120}
                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                           />
                         </div>
                       )}
 
                       <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
-                        <p className="text-sm font-semibold text-amber-300">Оплата переказом на картку</p>
+                        <p className="text-sm font-semibold text-amber-300">Підтвердження замовлення</p>
                         <p className="mt-1 text-sm text-white/70">
-                          Після оформлення замовлення ми надішлемо реквізити для переказу та уточнимо деталі.
+                          Після оформлення ми зв’яжемося з вами та уточнимо всі деталі.
                         </p>
                       </div>
 
@@ -633,15 +634,29 @@ export default function Home() {
                         onChange={(event) => setNotes(event.target.value)}
                         placeholder="Додаткові примітки до замовлення"
                         rows={3}
+                        maxLength={500}
                         className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
                       />
+
+                      <label className="flex items-start gap-3 text-xs text-white/60">
+                        <input
+                          type="checkbox"
+                          checked={privacyAccepted}
+                          onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          Погоджуюся на використання введених даних лише для обробки цього замовлення.
+                        </span>
+                      </label>
                     </div>
 
                     <button
                       onClick={() => void submitOrder()}
-                      className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800"
+                      disabled={submitting}
+                      className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Замовити
+                      {submitting ? "Надсилаємо..." : "Замовити"}
                     </button>
 
                     <p className="mt-3 text-xs text-white/40">
@@ -658,6 +673,4 @@ export default function Home() {
     </main>
     </>);
 }
-
-
 
