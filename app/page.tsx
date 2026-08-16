@@ -389,7 +389,7 @@ export default function Home() {
               className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
             >
               <div
-                className="h-50 bg-cover bg-center"
+                className="h-52 bg-contain bg-center bg-no-repeat"
                 style={{ backgroundImage: `url('${product.image}')` }}
               />
 
