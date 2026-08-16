@@ -5,18 +5,15 @@
 ## Функції
 - каталог товарів
 - кошик і оформлення замовлення
-- збереження замовлень у Supabase
-- адмінка з переглядом замовлень
+- надсилання замовлень у Telegram
+- серверна перевірка товарів, цін і даних клієнта
+- базовий захист від спаму та сторонніх запитів
 
 ## Змінні середовища
 - TELEGRAM_BOT_TOKEN
 - TELEGRAM_CHAT_ID
 - TELEGRAM_BOT_USERNAME
-- TELEGRAM_WEBHOOK_SECRET
-- ADMIN_PASSWORD
-- NEXT_PUBLIC_SUPABASE_URL
-- NEXT_PUBLIC_SUPABASE_ANON_KEY
-- SUPABASE_SERVICE_ROLE_KEY
+- SITE_ORIGIN
 
 ## Запуск
 ```bash
