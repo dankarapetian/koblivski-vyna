@@ -20,6 +20,7 @@ type OrderPayload = {
   customerName: string;
   customerSurname?: string;
   customerPhone: string;
+  ageConfirmed: true;
   deliveryType: "nova-poshta" | "pickup";
   region?: string;
   district?: string;
@@ -42,6 +43,7 @@ function normalizePayload(value: unknown): OrderPayload | null {
   const customerName = cleanText(payload.customerName, 80);
   const customerSurname = cleanText(payload.customerSurname, 80);
   const customerPhone = cleanText(payload.customerPhone, 30);
+  const ageConfirmed = payload.ageConfirmed;
   const deliveryType = payload.deliveryType;
   const region = cleanText(payload.region, 100);
   const district = cleanText(payload.district, 100);
@@ -57,6 +59,7 @@ function normalizePayload(value: unknown): OrderPayload | null {
 
   if (!/^[0-9a-f-]{36}$/i.test(requestId)) return null;
   if (!customerName || phoneDigits.length < 10 || phoneDigits.length > 15) return null;
+  if (ageConfirmed !== true) return null;
   if (deliveryType !== "nova-poshta" && deliveryType !== "pickup") return null;
   if (!Number.isFinite(startedAt) || formAge < 2_000 || formAge > 7_200_000) return null;
   if (website || items.length < 1 || items.length > MAX_ITEMS) return null;
@@ -88,6 +91,7 @@ function normalizePayload(value: unknown): OrderPayload | null {
     customerName,
     customerSurname,
     customerPhone,
+    ageConfirmed,
     deliveryType,
     region,
     district,
@@ -119,6 +123,7 @@ function buildOrderText(payload: OrderPayload) {
     "",
     `Клієнт: ${payload.customerName}${payload.customerSurname ? ` ${payload.customerSurname}` : ""}`,
     `Телефон: ${payload.customerPhone}`,
+    "Вік: покупець підтвердив 18+",
     "",
     ...trustedItems.map(
       (item) => `• ${item.name} × ${item.qty} — ${((item.price * item.qty) / 100).toFixed(2).replace(".", ",")} грн`
