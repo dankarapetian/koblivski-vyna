@@ -63,6 +63,7 @@ export default function Home() {
   const [street, setStreet] = useState("");
   const [notes, setNotes] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const formStartedAt = useRef(0);
 
@@ -152,6 +153,11 @@ export default function Home() {
       return;
     }
 
+    if (!ageConfirmed) {
+      window.alert("Підтвердіть, що вам виповнилося 18 років.");
+      return;
+    }
+
     if (!trimmedAddress || trimmedAddress === "Самовивіз") {
       if (deliveryType === "nova-poshta") {
         window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
@@ -173,6 +179,7 @@ export default function Home() {
         qty: item.qty,
       })),
       deliveryType,
+      ageConfirmed,
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
       ...(customerSurname.trim() ? { customerSurname: customerSurname.trim() } : {}),
       ...(customerPhone.trim() ? { customerPhone: customerPhone.trim() } : {}),
@@ -649,11 +656,21 @@ export default function Home() {
                           Погоджуюся на використання введених даних лише для обробки цього замовлення.
                         </span>
                       </label>
+
+                      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white">
+                        <input
+                          type="checkbox"
+                          checked={ageConfirmed}
+                          onChange={(event) => setAgeConfirmed(event.target.checked)}
+                          className="h-5 w-5 shrink-0 accent-red-700"
+                        />
+                        <span>Підтверджую, що мені виповнилося 18 років</span>
+                      </label>
                     </div>
 
                     <button
                       onClick={() => void submitOrder()}
-                      disabled={submitting}
+                      disabled={submitting || !ageConfirmed}
                       className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {submitting ? "Надсилаємо..." : "Замовити"}
@@ -673,4 +690,3 @@ export default function Home() {
     </main>
     </>);
 }
-
