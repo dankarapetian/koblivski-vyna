@@ -1,6 +1,5 @@
 "use client";
 
-import AgeGate from "./AgeGate";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
@@ -46,7 +45,6 @@ function formatPrice(cents: number) {
   return `${(cents / 100).toFixed(2).replace(".", ",")} грн`;
 }
 
-
 export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -62,8 +60,6 @@ export default function Home() {
   const [warehouse, setWarehouse] = useState("");
   const [street, setStreet] = useState("");
   const [notes, setNotes] = useState("");
-
-  
 
   const visibleProducts = useMemo(() => {
     return products.filter((product) => product.categoryId === activeCategory);
@@ -122,23 +118,9 @@ export default function Home() {
       return;
     }
 
-    const trimmedName = customerName.trim();
-    const trimmedPhone = customerPhone.trim();
-    const trimmedAddress =
-      deliveryType === "nova-poshta"
-        ? [region.trim(), district.trim(), city.trim(), street.trim(), warehouse.trim()].filter(Boolean).join(", ")
-        : "Самовивіз";
-
-    if (!trimmedName || !trimmedPhone) {
+    if (!customerName.trim() || !customerPhone.trim()) {
       window.alert("Будь ласка, вкажіть ім’я та телефон.");
       return;
-    }
-
-    if (!trimmedAddress || trimmedAddress === "Самовивіз") {
-      if (deliveryType === "nova-poshta") {
-        window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
-        return;
-      }
     }
 
     if (total <= 0) {
@@ -237,8 +219,6 @@ export default function Home() {
   }
 
   return (
-    <>
-  <AgeGate />
     <main className="min-h-screen bg-black text-white">
       <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
@@ -249,7 +229,7 @@ export default function Home() {
 
             <div>
               <p className="text-lg font-black tracking-wide md:text-xl">Коблівські Вина</p>
-              <p className="text-xs text-white/60">Українські вина </p>
+              <p className="text-xs text-white/60">Українські вина та спеціальності</p>
             </div>
           </div>
 
@@ -296,7 +276,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-lg text-white/75 md:text-xl">
-              Оберіть улюблені напої, додайте їх до кошика і замовте без зайвих кроків.
+              Оберіть улюблені напої, додайте їх до кошика і замовте через Telegram без зайвих кроків.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -345,7 +325,7 @@ export default function Home() {
           <Truck className="mb-4 text-red-300" />
           <h3 className="text-xl font-bold">Швидка комунікація</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-            Замовлення оформлюється просто
+            Замовлення оформлюється просто: обираєте товари й пишете нам у Telegram.
           </p>
         </div>
 
@@ -353,7 +333,7 @@ export default function Home() {
           <MessageCircle className="mb-4 text-red-300" />
           <h3 className="text-xl font-bold">Зручне замовлення</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-           Для зручного оформлення замовлення натисніть кнопку нижче, і ми одразу отримаємо ваше замовлення у готовому форматі.
+            Після натискання на кнопку ваш Telegram відкриється з готовим текстом замовлення.
           </p>
         </div>
       </section>
@@ -654,10 +634,6 @@ export default function Home() {
           </>
         )}
       </AnimatePresence>
-  
     </main>
-    </>);
+  );
 }
-
-
-

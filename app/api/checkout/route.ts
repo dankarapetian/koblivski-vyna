@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTelegramBotToken, getTelegramChatId, getTelegramBotUsername } from "@/lib/env";
+import { TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME, TELEGRAM_CHAT_ID } from "@/lib/env";
 import { applyRateLimit, getClientIpForLogs, logSuspiciousRequest } from "@/lib/security";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { getCatalogProductById } from "@/lib/catalog";
@@ -35,28 +35,9 @@ function isValidOrderPayload(payload: unknown): payload is {
   const message = sanitizeText(candidate.message);
   const items = Array.isArray(candidate.items) ? candidate.items : [];
   const total = typeof candidate.total === "number" ? candidate.total : Number(candidate.total);
-  const customerName = sanitizeText(candidate.customerName);
-  const customerPhone = sanitizeText(candidate.customerPhone);
-  const deliveryType = sanitizeText(candidate.deliveryType);
-  const region = sanitizeText(candidate.region);
-  const district = sanitizeText(candidate.district);
-  const city = sanitizeText(candidate.city);
-  const street = sanitizeText(candidate.street);
-  const warehouse = sanitizeText(candidate.warehouse);
 
   if (!message || !Number.isFinite(total) || total <= 0) {
     return false;
-  }
-
-  if (!customerName || !customerPhone) {
-    return false;
-  }
-
-  if (deliveryType === "nova-poshta") {
-    const addressFields = [region, district, city, street, warehouse].filter(Boolean);
-    if (addressFields.length < 4) {
-      return false;
-    }
   }
 
   if (!items.length) {
@@ -116,12 +97,11 @@ function buildOrderText(payload: {
 
   if (payload.items?.length) {
     payload.items.forEach((item) => {
-      const subtotal = item.price * item.qty;
-      lines.push(`• ${item.name} × ${item.qty} — ${(subtotal / 100).toFixed(2).replace(".", ",")} грн`);
+      lines.push(`• ${item.name} × ${item.qty} — ${item.price * item.qty} грн`);
     });
   }
 
-  lines.push("", `Загальна сума: ${((payload.total ?? 0) / 100).toFixed(2).replace(".", ",")} грн`, "");
+  lines.push("", `Загальна сума: ${payload.total ?? 0} грн`, "");
 
   if (payload.deliveryType === "nova-poshta") {
     lines.push(
@@ -171,9 +151,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Некоректні дані замовлення." }, { status: 400 });
     }
 
-    const botToken = getTelegramBotToken();
-    const chatId = getTelegramChatId();
-    const botUsername = getTelegramBotUsername();
+    const botToken = TELEGRAM_BOT_TOKEN?.trim();
+    const chatId = TELEGRAM_CHAT_ID?.trim();
+    const botUsername = TELEGRAM_BOT_USERNAME?.trim();
     const trustedItems = (payload.items ?? []).map((item) => {
       const productId = typeof item.id === "string" && item.id.trim() ? item.id : item.name;
       const product = getCatalogProductById(productId);
