@@ -242,7 +242,7 @@ export default function Home() {
             </div>
 
             <div>
-              <p className="text-lg font-black tracking-wide md:text-xl">Коблівські Вина</p>
+              <p className="text-lg font-black tracking-wide md:text-xl">Коблевські Вина</p>
               <p className="text-xs text-white/60">Українські вина </p>
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function Home() {
             </p>
 
             <h1 className="max-w-3xl text-5xl font-black leading-tight md:text-8xl">
-              Коблівські Вина
+              Коблевські Вина
             </h1>
 
             <p className="mt-6 max-w-xl text-lg text-white/75 md:text-xl">

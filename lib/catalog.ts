@@ -12,7 +12,7 @@ export type CatalogProduct = {
 export const catalogProducts: CatalogProduct[] = [
   {
     id: "bile-vyno-shato-de-win",
-    name: "Шато де він",
+    name: "Шато де Він",
     category: "Білі вина",
     categoryId: "weisswein",
     sort: "Напівсолодке",

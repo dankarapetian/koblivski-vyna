@@ -1,0 +1,2812 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Sun, 16 Aug 2026 22:55:43 +0200
+Subject: [PATCH] Harden Telegram order flow
+
+---
+ .env.example                      |  18 +-
+ .env.local.example                |   7 +-
+ README.md                         |  11 +-
+ app/AgeGate.jsx                   |  61 ---
+ app/AgeGate.tsx                   |  16 +-
+ app/admin/page.tsx                | 131 ------
+ app/api/admin/orders/route.ts     |  35 --
+ app/api/checkout/route.ts         | 377 +++++++----------
+ app/api/novaposhta/route.ts       |  68 ---
+ app/api/orders/route.ts           |  67 ---
+ app/api/supabase/route.ts         |  22 -
+ app/api/telegram/webhook/route.ts |  27 --
+ app/cancel/page.tsx               |  22 -
+ app/page.tsx                      | 115 +++---
+ app/success/page.tsx              |  22 -
+ lib/catalog.ts                    |   2 +-
+ lib/env.ts                        |   6 +-
+ lib/security.ts                   |  46 ++-
+ lib/supabase.ts                   |  34 --
+ next.config.ts                    |   7 +
+ package-lock.json                 | 660 ++++++++++++++----------------
+ package.json                      |   9 +-
+ supabase-orders.sql               |  51 ---
+ 23 files changed, 584 insertions(+), 1230 deletions(-)
+ delete mode 100644 app/AgeGate.jsx
+ delete mode 100644 app/admin/page.tsx
+ delete mode 100644 app/api/admin/orders/route.ts
+ delete mode 100644 app/api/novaposhta/route.ts
+ delete mode 100644 app/api/orders/route.ts
+ delete mode 100644 app/api/supabase/route.ts
+ delete mode 100644 app/api/telegram/webhook/route.ts
+ delete mode 100644 app/cancel/page.tsx
+ delete mode 100644 app/success/page.tsx
+ delete mode 100644 lib/supabase.ts
+ delete mode 100644 supabase-orders.sql
+
+diff --git a/.env.example b/.env.example
+index 277b75c..72d06b6 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,21 +1,11 @@
+ # Example environment variables for local development
+ # Copy this file to .env.local and fill in your own values.
+ 
+-# Stripe secret key for checkout
+-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+-
+-# Optional public site URL used for redirect URLs
+-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+-
+-# Monobank API token for monopay pubkey import
+-MONOBANK_API_TOKEN=your_monobank_api_token_here
+-
+-# Base64-encoded Monobank public key for import
+-MONOBANK_PUBKEY_BASE64=your_base64_public_key_here
+-MONOBANK_PUBKEY_NAME=my_key
+-MONOBANK_PUBKEY_EXPIRES_AT=2026-02-02T15:04:05+03:00
+-
+ # Telegram bot for order notifications
+ TELEGRAM_BOT_TOKEN=
+ TELEGRAM_CHAT_ID=
+ TELEGRAM_BOT_USERNAME=koblevskivina_bot
++
++# Public production origin used to reject cross-site order requests.
++# Example: https://koblivski-vyna.vercel.app
++SITE_ORIGIN=http://localhost:3000
+diff --git a/.env.local.example b/.env.local.example
+index 5df13c7..eab2aa7 100644
+--- a/.env.local.example
++++ b/.env.local.example
+@@ -1,9 +1,4 @@
+ TELEGRAM_BOT_TOKEN=
+ TELEGRAM_CHAT_ID=
+ TELEGRAM_BOT_USERNAME=
+-TELEGRAM_WEBHOOK_SECRET=
+-ADMIN_PASSWORD=
+-NEXT_PUBLIC_SUPABASE_URL=
+-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+-SUPABASE_SERVICE_ROLE_KEY=
+-NOVA_POSHTA_API_KEY=
++SITE_ORIGIN=http://localhost:3000
+diff --git a/README.md b/README.md
+index 34ff535..dc69369 100644
+--- a/README.md
++++ b/README.md
+@@ -5,18 +5,15 @@
+ ## Функції
+ - каталог товарів
+ - кошик і оформлення замовлення
+-- збереження замовлень у Supabase
+-- адмінка з переглядом замовлень
++- надсилання замовлень у Telegram
++- серверна перевірка товарів, цін і даних клієнта
++- базовий захист від спаму та сторонніх запитів
+ 
+ ## Змінні середовища
+ - TELEGRAM_BOT_TOKEN
+ - TELEGRAM_CHAT_ID
+ - TELEGRAM_BOT_USERNAME
+-- TELEGRAM_WEBHOOK_SECRET
+-- ADMIN_PASSWORD
+-- NEXT_PUBLIC_SUPABASE_URL
+-- NEXT_PUBLIC_SUPABASE_ANON_KEY
+-- SUPABASE_SERVICE_ROLE_KEY
++- SITE_ORIGIN
+ 
+ ## Запуск
+ ```bash
+diff --git a/app/AgeGate.jsx b/app/AgeGate.jsx
+deleted file mode 100644
+index ad7c8f5..0000000
+--- a/app/AgeGate.jsx
++++ /dev/null
+@@ -1,61 +0,0 @@
+-"use client";
+-
+-import { useEffect, useState } from "react";
+-
+-const STORAGE_KEY = "ageVerifiedUntil";
+-const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+-
+-export default function AgeGate() {
+-  const [isVisible, setIsVisible] = useState(false);
+-
+-  useEffect(() => {
+-    const verifiedUntil = Number(localStorage.getItem(STORAGE_KEY));
+-
+-    if (!verifiedUntil || Date.now() >= verifiedUntil) {
+-      localStorage.removeItem(STORAGE_KEY);
+-      setIsVisible(true);
+-      document.body.style.overflow = "hidden";
+-    }
+-
+-    return () => {
+-      document.body.style.overflow = "";
+-    };
+-  }, []);
+-
+-  function confirmAge() {
+-    const expiresAt = Date.now() + THREE_DAYS;
+-
+-    localStorage.setItem(STORAGE_KEY, expiresAt.toString());
+-    setIsVisible(false);
+-    document.body.style.overflow = "";
+-  }
+-
+-  function rejectAge() {
+-    window.location.href = "https://www.google.com/";
+-  }
+-
+-  if (!isVisible) return null;
+-
+-  return (
+-    <div className="ageGate">
+-      <div className="ageGateBox">
+-        <div className="ageGateLogo">🍷</div>
+-
+-        <h2>Вам вже виповнилося 18 років?</h2>
+-
+-        <p>
+-          Цей сайт містить інформацію про алкогольну продукцію та
+-          призначений лише для повнолітніх осіб.
+-        </p>
+-
+-        <button className="ageYes" onClick={confirmAge}>
+-          Так, мені вже є 18 років
+-        </button>
+-
+-        <button className="ageNo" onClick={rejectAge}>
+-          Ні, мені ще немає 18 років
+-        </button>
+-      </div>
+-    </div>
+-  );
+-}
+diff --git a/app/AgeGate.tsx b/app/AgeGate.tsx
+index c4cd999..a0464b6 100644
+--- a/app/AgeGate.tsx
++++ b/app/AgeGate.tsx
+@@ -3,7 +3,7 @@
+ import { useEffect, useState } from "react";
+ 
+ const STORAGE_KEY = "ageVerifiedAt";
+-const EXPIRE_MS = 3 * 60 * 60 * 1000;
++const EXPIRE_MS = 3 * 24 * 60 * 60 * 1000;
+ 
+ function isVerifiedRecently(value: string | null) {
+   if (!value) {
+@@ -27,12 +27,15 @@ export default function AgeGate() {
+     }
+ 
+     const stored = window.localStorage.getItem(STORAGE_KEY);
+-    if (isVerifiedRecently(stored)) {
+-      setVisible(false);
+-      return;
+-    }
++    if (isVerifiedRecently(stored)) return;
++
++    document.body.style.overflow = "hidden";
++    const timer = window.setTimeout(() => setVisible(true), 0);
+ 
+-    setVisible(true);
++    return () => {
++      window.clearTimeout(timer);
++      document.body.style.overflow = "";
++    };
+   }, []);
+ 
+   function handleYes() {
+@@ -41,6 +44,7 @@ export default function AgeGate() {
+     }
+ 
+     window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
++    document.body.style.overflow = "";
+     setVisible(false);
+   }
+ 
+diff --git a/app/admin/page.tsx b/app/admin/page.tsx
+deleted file mode 100644
+index 6e1b7a8..0000000
+--- a/app/admin/page.tsx
++++ /dev/null
+@@ -1,131 +0,0 @@
+-"use client";
+-
+-import { useEffect, useState } from "react";
+-
+-function getPassword() {
+-  return typeof window !== "undefined" ? window.localStorage.getItem("admin-password") ?? "" : "";
+-}
+-
+-function formatOrderTotal(value: number) {
+-  if (!Number.isFinite(value) || value <= 0) {
+-    return "—";
+-  }
+-
+-  return `${(value / 100).toFixed(2).replace(".", ",")} грн`;
+-}
+-
+-function normalizeOrderTotal(order: Record<string, unknown>) {
+-  const candidate = order.total ?? order.amount ?? order.total_amount ?? order.grand_total;
+-  const total = typeof candidate === "number" ? candidate : Number(candidate ?? 0);
+-
+-  return Number.isFinite(total) ? total : 0;
+-}
+-
+-export default function AdminPage() {
+-  const [password, setPassword] = useState("");
+-  const [authorized, setAuthorized] = useState(false);
+-  const [orders, setOrders] = useState<any[]>([]);
+-  const [loading, setLoading] = useState(false);
+-
+-  useEffect(() => {
+-    if (getPassword()) {
+-      setPassword(getPassword());
+-      setAuthorized(true);
+-    }
+-  }, []);
+-
+-  async function loadOrders() {
+-    setLoading(true);
+-    const response = await fetch(`/api/admin/orders?password=${encodeURIComponent(password)}`);
+-    const data = await response.json();
+-    setLoading(false);
+-
+-    if (!response.ok) {
+-      window.alert(data.error || "Не удалось получить заказы");
+-      return;
+-    }
+-
+-    const normalizedOrders = (data.orders || []).map((order: Record<string, unknown>) => ({
+-      ...order,
+-      total: normalizeOrderTotal(order),
+-    }));
+-
+-    setOrders(normalizedOrders);
+-  }
+-
+-  function login() {
+-    if (!password.trim()) {
+-      window.alert("Введите пароль");
+-      return;
+-    }
+-
+-    window.localStorage.setItem("admin-password", password);
+-    setAuthorized(true);
+-  }
+-
+-  if (!authorized) {
+-    return (
+-      <main className="min-h-screen bg-black p-10 text-white">
+-        <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/10 p-8">
+-          <h1 className="text-2xl font-black">Админка</h1>
+-          <p className="mt-2 text-sm text-white/70">Введите пароль из переменной окружения ADMIN_PASSWORD</p>
+-          <input
+-            type="password"
+-            value={password}
+-            onChange={(event) => setPassword(event.target.value)}
+-            className="mt-5 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white"
+-          />
+-          <button onClick={login} className="mt-4 w-full rounded-full bg-red-700 px-4 py-3 font-bold">
+-            Войти
+-          </button>
+-        </div>
+-      </main>
+-    );
+-  }
+-
+-  return (
+-    <main className="min-h-screen bg-black p-6 text-white">
+-      <div className="mx-auto max-w-6xl">
+-        <div className="flex items-center justify-between">
+-          <div>
+-            <h1 className="text-3xl font-black">Заказы</h1>
+-            <p className="text-sm text-white/60">Панель администратора</p>
+-          </div>
+-          <button
+-            onClick={loadOrders}
+-            className="rounded-full bg-red-700 px-4 py-3 font-bold"
+-          >
+-            {loading ? "Загрузка..." : "Обновить"}
+-          </button>
+-        </div>
+-
+-        <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/10">
+-          <table className="min-w-full text-sm">
+-            <thead className="bg-black/20 text-left">
+-              <tr>
+-                <th className="p-3">ID</th>
+-                <th className="p-3">Клиент</th>
+-                <th className="p-3">Телефон</th>
+-                <th className="p-3">Сумма</th>
+-                <th className="p-3">Статус</th>
+-                <th className="p-3">Создан</th>
+-              </tr>
+-            </thead>
+-            <tbody>
+-              {orders.map((order) => (
+-                <tr key={order.id} className="border-t border-white/10">
+-                  <td className="p-3">{order.id}</td>
+-                  <td className="p-3">{[order.customer_name, order.customer_surname].filter(Boolean).join(" ") || "—"}</td>
+-                  <td className="p-3">{order.customer_phone || "—"}</td>
+-                  <td className="p-3">{formatOrderTotal(normalizeOrderTotal(order))}</td>
+-                  <td className="p-3">{order.status || "new"}</td>
+-                  <td className="p-3">{order.created_at ? new Date(order.created_at).toLocaleString("uk-UA") : "—"}</td>
+-                </tr>
+-              ))}
+-            </tbody>
+-          </table>
+-        </div>
+-      </div>
+-    </main>
+-  );
+-}
+diff --git a/app/api/admin/orders/route.ts b/app/api/admin/orders/route.ts
+deleted file mode 100644
+index 8c350ae..0000000
+--- a/app/api/admin/orders/route.ts
++++ /dev/null
+@@ -1,35 +0,0 @@
+-import { NextRequest, NextResponse } from "next/server";
+-import { ADMIN_PASSWORD } from "@/lib/env";
+-import { createSupabaseServerClient } from "@/lib/supabase";
+-
+-export async function GET(request: NextRequest) {
+-  const password = request.nextUrl.searchParams.get("password")?.trim();
+-
+-  if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD.trim()) {
+-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+-  }
+-
+-  const client = createSupabaseServerClient();
+-
+-  if (!client) {
+-    return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
+-  }
+-
+-  const { data, error } = await client.from("orders").select("*").order("created_at", { ascending: false });
+-
+-  if (error) {
+-    return NextResponse.json({ error: error.message }, { status: 500 });
+-  }
+-
+-  const orders = (data || []).map((order: Record<string, unknown>) => {
+-    const candidate = order.total ?? order.amount ?? order.total_amount ?? order.grand_total;
+-    const total = typeof candidate === "number" ? candidate : Number(candidate ?? 0);
+-
+-    return {
+-      ...order,
+-      total: Number.isFinite(total) ? total : 0,
+-    };
+-  });
+-
+-  return NextResponse.json({ orders });
+-}
+diff --git a/app/api/checkout/route.ts b/app/api/checkout/route.ts
+index e5b9789..cf38931 100644
+--- a/app/api/checkout/route.ts
++++ b/app/api/checkout/route.ts
+@@ -1,306 +1,223 @@
+ import { NextRequest, NextResponse } from "next/server";
+-import { getTelegramBotToken, getTelegramChatId, getTelegramBotUsername } from "@/lib/env";
+-import { applyRateLimit, getClientIpForLogs, logSuspiciousRequest } from "@/lib/security";
+-import { createSupabaseServerClient } from "@/lib/supabase";
++import { getTelegramBotToken, getTelegramBotUsername, getTelegramChatId, SITE_ORIGIN } from "@/lib/env";
++import {
++  applyRateLimit,
++  getClientIpForLogs,
++  isSameOriginRequest,
++  logSuspiciousRequest,
++} from "@/lib/security";
+ import { getCatalogProductById } from "@/lib/catalog";
+ 
+-function sanitizeText(value: unknown) {
+-  if (typeof value !== "string") {
+-    return "";
+-  }
+-
+-  return value.replace(/<[^>]*>/g, "").trim();
+-}
++const MAX_BODY_BYTES = 20_000;
++const MAX_ITEMS = 30;
++const MAX_QTY = 20;
+ 
+-function isValidOrderPayload(payload: unknown): payload is {
+-  message: string;
+-  total?: number;
+-  items?: Array<{ id?: string; name: string; qty: number; price: number }>;
+-  customerName?: string;
++type OrderPayload = {
++  requestId: string;
++  startedAt: number;
++  website?: string;
++  items: Array<{ id: string; qty: number }>;
++  customerName: string;
+   customerSurname?: string;
+-  customerPhone?: string;
+-  deliveryType?: string;
++  customerPhone: string;
++  deliveryType: "nova-poshta" | "pickup";
+   region?: string;
+   district?: string;
+   city?: string;
+   street?: string;
+   warehouse?: string;
+   notes?: string;
+-} {
+-  if (!payload || typeof payload !== "object") {
+-    return false;
+-  }
+-
+-  const candidate = payload as Record<string, unknown>;
+-  const message = sanitizeText(candidate.message);
+-  const items = Array.isArray(candidate.items) ? candidate.items : [];
+-  const total = typeof candidate.total === "number" ? candidate.total : Number(candidate.total);
+-  const customerName = sanitizeText(candidate.customerName);
+-  const customerPhone = sanitizeText(candidate.customerPhone);
+-  const deliveryType = sanitizeText(candidate.deliveryType);
+-  const region = sanitizeText(candidate.region);
+-  const district = sanitizeText(candidate.district);
+-  const city = sanitizeText(candidate.city);
+-  const street = sanitizeText(candidate.street);
+-  const warehouse = sanitizeText(candidate.warehouse);
++};
+ 
+-  if (!message || !Number.isFinite(total) || total <= 0) {
+-    return false;
+-  }
++function cleanText(value: unknown, maxLength: number) {
++  if (typeof value !== "string") return "";
++  return value.replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
++}
+ 
+-  if (!customerName || !customerPhone) {
+-    return false;
+-  }
++function normalizePayload(value: unknown): OrderPayload | null {
++  if (!value || typeof value !== "object") return null;
++
++  const payload = value as Record<string, unknown>;
++  const requestId = cleanText(payload.requestId, 80);
++  const customerName = cleanText(payload.customerName, 80);
++  const customerSurname = cleanText(payload.customerSurname, 80);
++  const customerPhone = cleanText(payload.customerPhone, 30);
++  const deliveryType = payload.deliveryType;
++  const region = cleanText(payload.region, 100);
++  const district = cleanText(payload.district, 100);
++  const city = cleanText(payload.city, 100);
++  const street = cleanText(payload.street, 160);
++  const warehouse = cleanText(payload.warehouse, 120);
++  const notes = cleanText(payload.notes, 500);
++  const website = cleanText(payload.website, 200);
++  const startedAt = typeof payload.startedAt === "number" ? payload.startedAt : 0;
++  const items = Array.isArray(payload.items) ? payload.items : [];
++  const phoneDigits = customerPhone.replace(/\D/g, "");
++  const formAge = Date.now() - startedAt;
++
++  if (!/^[0-9a-f-]{36}$/i.test(requestId)) return null;
++  if (!customerName || phoneDigits.length < 10 || phoneDigits.length > 15) return null;
++  if (deliveryType !== "nova-poshta" && deliveryType !== "pickup") return null;
++  if (!Number.isFinite(startedAt) || formAge < 2_000 || formAge > 7_200_000) return null;
++  if (website || items.length < 1 || items.length > MAX_ITEMS) return null;
++  if (deliveryType === "nova-poshta" && (!region || !city || !warehouse)) return null;
++
++  const normalizedItems: Array<{ id: string; qty: number }> = [];
++  const seenIds = new Set<string>();
++
++  for (const item of items) {
++    if (!item || typeof item !== "object") return null;
++    const entry = item as Record<string, unknown>;
++    const id = typeof entry.id === "string" ? entry.id.slice(0, 120) : "";
++    const qty = entry.qty;
+ 
+-  if (deliveryType === "nova-poshta") {
+-    const addressFields = [region, district, city, street, warehouse].filter(Boolean);
+-    if (addressFields.length < 4) {
+-      return false;
++    if (!id || seenIds.has(id) || !Number.isInteger(qty) || (qty as number) < 1 || (qty as number) > MAX_QTY) {
++      return null;
+     }
+-  }
++    if (!getCatalogProductById(id)) return null;
+ 
+-  if (!items.length) {
+-    return false;
++    seenIds.add(id);
++    normalizedItems.push({ id, qty: qty as number });
+   }
+ 
+-  return items.every((item) => {
+-    if (!item || typeof item !== "object") {
+-      return false;
+-    }
+-
+-    const entry = item as Record<string, unknown>;
+-    return (
+-      typeof entry.name === "string" &&
+-      typeof entry.qty === "number" &&
+-      entry.qty > 0 &&
+-      typeof entry.price === "number" &&
+-      entry.price >= 0
+-    );
+-  });
++  return {
++    requestId,
++    startedAt,
++    website,
++    items: normalizedItems,
++    customerName,
++    customerSurname,
++    customerPhone,
++    deliveryType,
++    region,
++    district,
++    city,
++    street,
++    warehouse,
++    notes,
++  };
+ }
+ 
+-function buildTelegramLink(username: string | undefined, message: string) {
+-  const normalizedUsername = username?.trim().replace(/^@/, "");
+-
+-  if (!normalizedUsername) {
+-    return null;
+-  }
++function buildTelegramLink(username: string, message: string) {
++  const normalizedUsername = username.trim().replace(/^@/, "");
++  if (!/^[A-Za-z0-9_]{5,32}$/.test(normalizedUsername)) return null;
+ 
+   const url = new URL(`https://t.me/${normalizedUsername}`);
+   url.searchParams.set("text", message);
+   return url.toString();
+ }
+ 
+-function buildOrderText(payload: {
+-  message: string;
+-  customerName?: string;
+-  customerSurname?: string;
+-  customerPhone?: string;
+-  deliveryType?: string;
+-  region?: string;
+-  district?: string;
+-  city?: string;
+-  street?: string;
+-  warehouse?: string;
+-  notes?: string;
+-  total?: number;
+-  items?: Array<{ name: string; qty: number; price: number }>;
+-}) {
++function buildOrderText(payload: OrderPayload) {
++  const trustedItems = payload.items.map(({ id, qty }) => {
++    const product = getCatalogProductById(id)!;
++    return { name: product.name, qty, price: product.price };
++  });
++  const total = trustedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+   const lines = [
+     "Нове замовлення з сайту Коблівські Вина",
++    `Номер: ${payload.requestId}`,
+     "",
+-    `Клієнт: ${payload.customerName || "не вказано"} ${payload.customerSurname || ""}`.trim(),
+-    `Телефон: ${payload.customerPhone || "не вказано"}`,
++    `Клієнт: ${payload.customerName}${payload.customerSurname ? ` ${payload.customerSurname}` : ""}`,
++    `Телефон: ${payload.customerPhone}`,
++    "",
++    ...trustedItems.map(
++      (item) => `• ${item.name} × ${item.qty} — ${((item.price * item.qty) / 100).toFixed(2).replace(".", ",")} грн`
++    ),
++    "",
++    `Загальна сума: ${(total / 100).toFixed(2).replace(".", ",")} грн`,
+     "",
+   ];
+ 
+-  if (payload.items?.length) {
+-    payload.items.forEach((item) => {
+-      const subtotal = item.price * item.qty;
+-      lines.push(`• ${item.name} × ${item.qty} — ${(subtotal / 100).toFixed(2).replace(".", ",")} грн`);
+-    });
+-  }
+-
+-  lines.push("", `Загальна сума: ${((payload.total ?? 0) / 100).toFixed(2).replace(".", ",")} грн`, "");
+-
+   if (payload.deliveryType === "nova-poshta") {
+     lines.push(
+       "Доставка: Нова Пошта",
+-      payload.region ? `Область: ${payload.region}` : "Область: не вказано",
+-      payload.district ? `Район: ${payload.district}` : "Район: не вказано",
+-      payload.city ? `Місто: ${payload.city}` : "Місто: не вказано",
+-      payload.street ? `Вулиця: ${payload.street}` : "Вулиця: не вказано",
+-      payload.warehouse ? `Відділення: ${payload.warehouse}` : "Відділення: не вказано"
++      `Область: ${payload.region}`,
++      payload.district ? `Район: ${payload.district}` : "",
++      `Місто: ${payload.city}`,
++      payload.street ? `Вулиця: ${payload.street}` : "",
++      `Відділення: ${payload.warehouse}`
+     );
+   } else {
+     lines.push("Доставка: Самовивіз");
+   }
+ 
+-  lines.push("", "Оплата: переказ на картку", "Реквізити для переказу: уточнимо після оформлення замовлення.");
+-
+-  if (payload.notes) {
+-    lines.push("", `Примітка: ${payload.notes}`);
+-  }
+-
+-  lines.push("", "Будь ласка, зв’яжіться зі мною для підтвердження доставки.");
++  if (payload.notes) lines.push("", `Примітка: ${payload.notes}`);
++  lines.push("", "Будь ласка, зв’яжіться зі мною для підтвердження замовлення.");
++  return lines.filter(Boolean).join("\n");
++}
+ 
+-  return [...lines, "", payload.message].join("\n");
++function json(body: Record<string, unknown>, status = 200, headers?: HeadersInit) {
++  return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store", ...headers } });
+ }
+ 
+ export async function POST(request: NextRequest) {
+-  const rateLimit = applyRateLimit(request, { limit: 5, windowMs: 60_000 });
++  const rateLimit = applyRateLimit(request, { limit: 4, windowMs: 10 * 60_000 });
+ 
+   if (!rateLimit.allowed) {
+-    logSuspiciousRequest({
+-      path: request.nextUrl.pathname,
+-      ip: getClientIpForLogs(request),
+-      reason: "rate_limit_exceeded",
+-      retryAfter: rateLimit.retryAfter,
++    return json({ error: "Забагато спроб. Спробуйте пізніше." }, 429, {
++      "Retry-After": String(rateLimit.retryAfter),
+     });
++  }
+ 
+-    return NextResponse.json(
+-      { error: "Too many requests. Please try again later." },
+-      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } }
+-    );
++  if (!isSameOriginRequest(request, SITE_ORIGIN)) {
++    logSuspiciousRequest({ path: request.nextUrl.pathname, ip: getClientIpForLogs(request), reason: "invalid_origin" });
++    return json({ error: "Запит відхилено." }, 403);
+   }
+ 
+-  try {
+-    const payload = await request.json();
++  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
++    return json({ error: "Потрібен JSON-запит." }, 415);
++  }
+ 
+-    if (!isValidOrderPayload(payload)) {
+-      return NextResponse.json({ error: "Некоректні дані замовлення." }, { status: 400 });
++  const declaredLength = Number(request.headers.get("content-length") ?? 0);
++  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
++    return json({ error: "Запит завеликий." }, 413);
++  }
++
++  try {
++    const rawBody = await request.text();
++    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
++      return json({ error: "Запит завеликий." }, 413);
+     }
+ 
++    const payload = normalizePayload(JSON.parse(rawBody));
++    if (!payload) return json({ error: "Некоректні дані замовлення." }, 400);
++
++    const orderText = buildOrderText(payload);
+     const botToken = getTelegramBotToken();
+     const chatId = getTelegramChatId();
+     const botUsername = getTelegramBotUsername();
+-    const trustedItems = (payload.items ?? []).map((item) => {
+-      const productId = typeof item.id === "string" && item.id.trim() ? item.id : item.name;
+-      const product = getCatalogProductById(productId);
+-      const unitPrice = product?.price ?? 0;
+-      return {
+-        id: product?.id ?? productId,
+-        name: product?.name ?? item.name,
+-        qty: item.qty,
+-        price: unitPrice,
+-      };
+-    });
+-
+-    const trustedTotal = trustedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+-    const normalizedPayload = {
+-      ...payload,
+-      total: trustedTotal,
+-      items: trustedItems,
+-      message: payload.message,
+-    };
+-    const orderText = buildOrderText(normalizedPayload);
+-    const client = createSupabaseServerClient();
+-    const orderId = crypto.randomUUID();
+-
+-    if (client) {
+-      const { error } = await client.from("orders").insert({
+-        id: orderId,
+-        customer_name: normalizedPayload.customerName ?? null,
+-        customer_surname: normalizedPayload.customerSurname ?? null,
+-        customer_phone: normalizedPayload.customerPhone ?? null,
+-        delivery_type: normalizedPayload.deliveryType ?? "pickup",
+-        region: normalizedPayload.region ?? null,
+-        district: normalizedPayload.district ?? null,
+-        city: normalizedPayload.city ?? null,
+-        street: normalizedPayload.street ?? null,
+-        warehouse: normalizedPayload.warehouse ?? null,
+-        notes: normalizedPayload.notes ?? null,
+-        total: Number(normalizedPayload.total ?? 0),
+-        items: normalizedPayload.items ?? [],
+-        message: normalizedPayload.message ?? null,
+-        status: "new",
+-        created_at: new Date().toISOString(),
+-      });
+-
+-      if (error) {
+-        throw new Error(`Supabase insert failed: ${error.message}`);
+-      }
+-    }
+ 
+     if (!botToken || !chatId) {
+       const telegramUrl = buildTelegramLink(botUsername, orderText);
+-
+-      if (telegramUrl) {
+-        return NextResponse.json({ success: true, telegramUrl, fallback: true, orderId });
+-      }
+-
+-      return NextResponse.json(
+-        {
+-          error: "Telegram-сповіщення не налаштовані. Додайте TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID і TELEGRAM_BOT_USERNAME.",
+-        },
+-        { status: 500 }
+-      );
++      if (telegramUrl) return json({ success: true, telegramUrl, fallback: true, orderId: payload.requestId });
++      return json({ error: "Сервіс замовлень тимчасово недоступний." }, 503);
+     }
+ 
+-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
++    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+       method: "POST",
+-      headers: {
+-        "Content-Type": "application/json",
+-      },
+-      body: JSON.stringify({
+-        chat_id: chatId,
+-        text: orderText,
+-        disable_web_page_preview: true,
+-      }),
++      headers: { "Content-Type": "application/json" },
++      body: JSON.stringify({ chat_id: chatId, text: orderText, disable_web_page_preview: true }),
++      signal: AbortSignal.timeout(8_000),
++      cache: "no-store",
+     });
++    const telegramData = (await telegramResponse.json().catch(() => null)) as { ok?: boolean } | null;
+ 
+-    const data = await response.json();
+-
+-    if (!response.ok || !data.ok) {
+-      return NextResponse.json(
+-        {
+-          error: data.description || "Не вдалося надіслати замовлення в Telegram.",
+-        },
+-        { status: 502 }
+-      );
++    if (!telegramResponse.ok || !telegramData?.ok) {
++      return json({ error: "Не вдалося надіслати замовлення. Спробуйте ще раз." }, 502);
+     }
+ 
+-    return NextResponse.json({ success: true, orderId });
++    return json({ success: true, orderId: payload.requestId });
+   } catch (error) {
+-    const message = error instanceof Error ? error.message : "Unknown error";
+-
+     logSuspiciousRequest({
+       path: request.nextUrl.pathname,
+       ip: getClientIpForLogs(request),
+       reason: "checkout_error",
+-      message,
++      message: error instanceof Error ? error.message : "Unknown error",
+     });
+-
+-    return NextResponse.json(
+-      {
+-        error: "Не вдалося обробити замовлення.",
+-      },
+-      { status: 500 }
+-    );
++    return json({ error: "Не вдалося обробити замовлення." }, 400);
+   }
+ }
+ 
+-export async function GET() {
+-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+-}
+-
+-export async function PUT() {
+-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+-}
+-
+-export async function PATCH() {
+-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+-}
+-
+-export async function DELETE() {
+-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+-}
+-
+-export async function OPTIONS() {
+-  return new NextResponse(null, {
+-    status: 204,
+-    headers: {
+-      Allow: "POST, OPTIONS",
+-    },
+-  });
++export function GET() {
++  return json({ error: "Method not allowed" }, 405, { Allow: "POST" });
+ }
+diff --git a/app/api/novaposhta/route.ts b/app/api/novaposhta/route.ts
+deleted file mode 100644
+index a18251f..0000000
+--- a/app/api/novaposhta/route.ts
++++ /dev/null
+@@ -1,68 +0,0 @@
+-import { NextResponse } from "next/server";
+-
+-
+-type NovaPoshtaPayload = {
+-  apiKey: string;
+-  modelName: string;
+-  calledMethod: string;
+-  methodProperties: Record<string, string>;
+-};
+-
+-const NOVA_POSHTA_API_URL = "https://api.novaposhta.ua/v2.0/json/";
+-
+-async function callNovaPoshta(payload: NovaPoshtaPayload) {
+-  const response = await fetch(NOVA_POSHTA_API_URL, {
+-    method: "POST",
+-    headers: {
+-      "Content-Type": "application/json",
+-    },
+-    body: JSON.stringify(payload),
+-    cache: "no-store",
+-  });
+-
+-  return response.json();
+-}
+-
+-export async function POST(request: Request) {
+-  const body = (await request.json()) as {
+-    action?: string;
+-    areaRef?: string;
+-    cityRef?: string;
+-  };
+-
+-  const action = body.action ?? "areas";
+-  const apiKey = process.env.NOVA_POSHTA_API_KEY?.trim();
+-
+-  if (!apiKey) {
+-    return NextResponse.json({ success: false, error: "missing_api_key", data: [] });
+-  }
+-
+-  try {
+-    const payload: NovaPoshtaPayload = {
+-      apiKey,
+-      modelName: "Address",
+-      calledMethod: "getAreas",
+-      methodProperties: {},
+-    };
+-
+-    if (action === "cities") {
+-      payload.calledMethod = "getCities";
+-      payload.methodProperties = { AreaRef: body.areaRef ?? "" };
+-    }
+-
+-    if (action === "warehouses") {
+-      payload.calledMethod = "getWarehouses";
+-      payload.methodProperties = { CityRef: body.cityRef ?? "" };
+-    }
+-
+-    const result = await callNovaPoshta(payload);
+-
+-    if (result?.success) {
+-      return NextResponse.json({ success: true, data: result.data ?? [] });
+-    }
+-
+-    return NextResponse.json({ success: false, error: "api_error", data: [] });
+-  } catch {
+-    return NextResponse.json({ success: false, error: "request_failed", data: [] });
+-  }
+-}
+diff --git a/app/api/orders/route.ts b/app/api/orders/route.ts
+deleted file mode 100644
+index 89685d4..0000000
+--- a/app/api/orders/route.ts
++++ /dev/null
+@@ -1,67 +0,0 @@
+-import { NextRequest, NextResponse } from "next/server";
+-import { createSupabaseServerClient } from "@/lib/supabase";
+-import { applyRateLimit, getClientIpForLogs, logSuspiciousRequest } from "@/lib/security";
+-
+-export async function POST(request: NextRequest) {
+-  const rateLimit = applyRateLimit(request, { limit: 5, windowMs: 60_000 });
+-
+-  if (!rateLimit.allowed) {
+-    logSuspiciousRequest({
+-      path: request.nextUrl.pathname,
+-      ip: getClientIpForLogs(request),
+-      reason: "order_rate_limit_exceeded",
+-      retryAfter: rateLimit.retryAfter,
+-    });
+-
+-    return NextResponse.json(
+-      { error: "Too many requests. Please try again later." },
+-      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfter) } }
+-    );
+-  }
+-
+-  try {
+-    const payload = await request.json();
+-    const client = createSupabaseServerClient();
+-
+-    if (!client) {
+-      return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
+-    }
+-
+-    const orderPayload = {
+-      id: typeof payload?.id === "string" ? payload.id : crypto.randomUUID(),
+-      customer_name: typeof payload?.customerName === "string" ? payload.customerName : null,
+-      customer_surname: typeof payload?.customerSurname === "string" ? payload.customerSurname : null,
+-      customer_phone: typeof payload?.customerPhone === "string" ? payload.customerPhone : null,
+-      delivery_type: typeof payload?.deliveryType === "string" ? payload.deliveryType : "pickup",
+-      region: typeof payload?.region === "string" ? payload.region : null,
+-      district: typeof payload?.district === "string" ? payload.district : null,
+-      city: typeof payload?.city === "string" ? payload.city : null,
+-      street: typeof payload?.street === "string" ? payload.street : null,
+-      warehouse: typeof payload?.warehouse === "string" ? payload.warehouse : null,
+-      notes: typeof payload?.notes === "string" ? payload.notes : null,
+-      total: typeof payload?.total === "number" ? payload.total : 0,
+-      items: Array.isArray(payload?.items) ? payload.items : [],
+-      message: typeof payload?.message === "string" ? payload.message : null,
+-      status: "new",
+-      created_at: new Date().toISOString(),
+-    };
+-
+-    const { error } = await client.from("orders").insert(orderPayload);
+-
+-    if (error) {
+-      throw error;
+-    }
+-
+-    return NextResponse.json({ success: true, orderId: orderPayload.id });
+-  } catch (error) {
+-    const message = error instanceof Error ? error.message : "Unknown error";
+-    logSuspiciousRequest({
+-      path: request.nextUrl.pathname,
+-      ip: getClientIpForLogs(request),
+-      reason: "order_insert_failed",
+-      message,
+-    });
+-
+-    return NextResponse.json({ error: "Failed to store order." }, { status: 500 });
+-  }
+-}
+diff --git a/app/api/supabase/route.ts b/app/api/supabase/route.ts
+deleted file mode 100644
+index 9614b2b..0000000
+--- a/app/api/supabase/route.ts
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import { NextResponse } from "next/server";
+-import { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY } from "@/lib/env";
+-
+-export async function GET() {
+-  const supabaseUrl = NEXT_PUBLIC_SUPABASE_URL?.trim();
+-  const anonKey = NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+-  const serviceRoleKey = SUPABASE_SERVICE_ROLE_KEY?.trim();
+-
+-  const hasUrl = Boolean(supabaseUrl);
+-  const hasAnonKey = Boolean(anonKey);
+-  const hasServiceRoleKey = Boolean(serviceRoleKey);
+-  const configured = hasUrl && hasAnonKey && hasServiceRoleKey;
+-
+-  return NextResponse.json({
+-    ok: configured,
+-    configured,
+-    hasUrl,
+-    hasAnonKey,
+-    hasServiceRoleKey,
+-    projectName: supabaseUrl ? supabaseUrl.replace(/https?:\/\//, "").split(".")[0] : null,
+-  });
+-}
+diff --git a/app/api/telegram/webhook/route.ts b/app/api/telegram/webhook/route.ts
+deleted file mode 100644
+index de15331..0000000
+--- a/app/api/telegram/webhook/route.ts
++++ /dev/null
+@@ -1,27 +0,0 @@
+-import { NextRequest, NextResponse } from "next/server";
+-import { TELEGRAM_WEBHOOK_SECRET } from "@/lib/env";
+-
+-export async function POST(request: NextRequest) {
+-  const expectedSecret = TELEGRAM_WEBHOOK_SECRET?.trim();
+-  const providedSecret = request.headers.get("x-telegram-bot-api-secret-token")?.trim();
+-
+-  if (!expectedSecret || providedSecret !== expectedSecret) {
+-    return new NextResponse("Unauthorized", { status: 401 });
+-  }
+-
+-  try {
+-    const body = await request.json().catch(() => null);
+-
+-    if (!body || typeof body !== "object") {
+-      return new NextResponse("Bad Request", { status: 400 });
+-    }
+-
+-    return NextResponse.json({ ok: true, received: true });
+-  } catch {
+-    return new NextResponse("Bad Request", { status: 400 });
+-  }
+-}
+-
+-export async function GET() {
+-  return NextResponse.json({ ok: true, message: "Telegram webhook endpoint is ready" });
+-}
+diff --git a/app/cancel/page.tsx b/app/cancel/page.tsx
+deleted file mode 100644
+index e72e67e..0000000
+--- a/app/cancel/page.tsx
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import Link from "next/link";
+-
+-export default function CancelPage() {
+-  return (
+-    <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
+-      <div className="max-w-xl rounded-3xl border border-white/10 bg-white/10 p-10 text-center">
+-        <h1 className="text-4xl font-black text-red-400">
+-          Zahlung abgebrochen
+-        </h1>
+-        <p className="mt-4 text-white/70">
+-          Deine Zahlung wurde nicht abgeschlossen. Du kannst zurück zum Shop gehen.
+-        </p>
+-        <Link
+-          href="/"
+-          className="mt-8 inline-block rounded-full bg-red-700 px-8 py-4 font-bold hover:bg-red-800"
+-        >
+-          Zurück zum Shop
+-        </Link>
+-      </div>
+-    </main>
+-  );
+-}
+diff --git a/app/page.tsx b/app/page.tsx
+index 05031bf..27f8e27 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -1,7 +1,7 @@
+ "use client";
+ 
+ import AgeGate from "./AgeGate";
+-import { useMemo, useState } from "react";
++import { useEffect, useMemo, useRef, useState } from "react";
+ import { motion, AnimatePresence } from "framer-motion";
+ import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
+ import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
+@@ -62,6 +62,13 @@ export default function Home() {
+   const [warehouse, setWarehouse] = useState("");
+   const [street, setStreet] = useState("");
+   const [notes, setNotes] = useState("");
++  const [privacyAccepted, setPrivacyAccepted] = useState(false);
++  const [submitting, setSubmitting] = useState(false);
++  const formStartedAt = useRef(0);
++
++  useEffect(() => {
++    formStartedAt.current = Date.now();
++  }, []);
+ 
+   
+ 
+@@ -87,7 +94,7 @@ export default function Home() {
+ 
+       if (existing) {
+         return oldCart.map((item) =>
+-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
++          item.id === product.id ? { ...item, qty: Math.min(20, item.qty + 1) } : item
+         );
+       }
+ 
+@@ -100,7 +107,7 @@ export default function Home() {
+   function increaseQty(id: string) {
+     setCart((oldCart) =>
+       oldCart.map((item) =>
+-        item.id === id ? { ...item, qty: item.qty + 1 } : item
++        item.id === id ? { ...item, qty: Math.min(20, item.qty + 1) } : item
+       )
+     );
+   }
+@@ -118,7 +125,7 @@ export default function Home() {
+   }
+ 
+   async function submitOrder() {
+-    if (cart.length === 0 || honeypot) {
++    if (cart.length === 0 || honeypot || submitting) {
+       return;
+     }
+ 
+@@ -134,6 +141,17 @@ export default function Home() {
+       return;
+     }
+ 
++    const phoneDigits = trimmedPhone.replace(/\D/g, "");
++    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
++      window.alert("Будь ласка, перевірте номер телефону.");
++      return;
++    }
++
++    if (!privacyAccepted) {
++      window.alert("Потрібна згода на обробку даних для оформлення замовлення.");
++      return;
++    }
++
+     if (!trimmedAddress || trimmedAddress === "Самовивіз") {
+       if (deliveryType === "nova-poshta") {
+         window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
+@@ -146,51 +164,13 @@ export default function Home() {
+       return;
+     }
+ 
+-    const deliveryText =
+-      deliveryType === "nova-poshta"
+-        ? [
+-            "Доставка: Нова Пошта",
+-            region ? `Область: ${region}` : "Область: не вказано",
+-            district ? `Район: ${district}` : "Район: не вказано",
+-            city ? `Місто: ${city}` : "Місто: не вказано",
+-            street ? `Вулиця: ${street}` : "Вулиця: не вказано",
+-            warehouse ? `Відділення: ${warehouse}` : "Відділення: не вказано",
+-          ].join("\n")
+-        : "Доставка: Самовивіз";
+-
+-    const paymentText = [
+-      "Оплата: переказ на картку",
+-      "Реквізити для переказу: уточнимо після оформлення замовлення.",
+-    ].join("\n");
+-
+-    const lines = cart.map((item) => `• ${item.name} × ${item.qty} — ${formatPrice(item.price * item.qty)}`);
+-    const message = [
+-      "Нове замовлення з сайту Коблівські Вина",
+-      "",
+-      `Клієнт: ${customerName || "не вказано"} ${customerSurname || ""}`.trim(),
+-      `Телефон: ${customerPhone || "не вказано"}`,
+-      "",
+-      ...lines,
+-      "",
+-      `Загальна сума: ${formatPrice(total)}`,
+-      "",
+-      deliveryText,
+-      paymentText,
+-      notes ? `\nПримітка: ${notes}` : "",
+-      "",
+-      "Будь ласка, зв’яжіться зі мною для підтвердження доставки.",
+-    ]
+-      .filter(Boolean)
+-      .join("\n");
+-
+     const payload = {
+-      message,
+-      total,
++      requestId: crypto.randomUUID(),
++      startedAt: formStartedAt.current,
++      website: honeypot,
+       items: cart.map((item) => ({
+         id: item.id,
+-        name: item.name,
+         qty: item.qty,
+-        price: item.price,
+       })),
+       deliveryType,
+       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
+@@ -209,12 +189,14 @@ export default function Home() {
+     };
+ 
+     try {
++      setSubmitting(true);
+       const response = await fetch("/api/checkout", {
+         method: "POST",
+         headers: {
+           "Content-Type": "application/json",
+         },
+         body: JSON.stringify(payload),
++        credentials: "same-origin",
+       });
+ 
+       const data = await response.json().catch(() => null);
+@@ -227,12 +209,17 @@ export default function Home() {
+       if (data?.telegramUrl) {
+         window.open(data.telegramUrl, "_blank", "noopener,noreferrer");
+         window.alert("Замовлення підготовлено. Відкриваємо Telegram.");
++        setCart([]);
+         return;
+       }
+ 
+       window.alert("Замовлення відправлено. Ми зв’яжемося з вами найближчим часом.");
++      setCart([]);
++      setNotes("");
+     } catch {
+       window.alert("Не вдалося надіслати замовлення. Спробуйте ще раз.");
++    } finally {
++      setSubmitting(false);
+     }
+   }
+ 
+@@ -545,6 +532,8 @@ export default function Home() {
+                           value={customerName}
+                           onChange={(event) => setCustomerName(event.target.value)}
+                           placeholder="Ім’я"
++                          autoComplete="given-name"
++                          maxLength={80}
+                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                         />
+                         <input
+@@ -555,17 +544,24 @@ export default function Home() {
+                           onChange={(event) => setHoneypot(event.target.value)}
+                           className="absolute left-[-9999px] h-0 w-0 opacity-0"
+                           aria-hidden="true"
++                          name="website"
+                         />
+                         <input
+                           value={customerSurname}
+                           onChange={(event) => setCustomerSurname(event.target.value)}
+                           placeholder="Прізвище"
++                          autoComplete="family-name"
++                          maxLength={80}
+                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                         />
+                         <input
+                           value={customerPhone}
+                           onChange={(event) => setCustomerPhone(event.target.value)}
+                           placeholder="Телефон"
++                          type="tel"
++                          inputMode="tel"
++                          autoComplete="tel"
++                          maxLength={30}
+                           className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                         />
+                       </div>
+@@ -588,6 +584,7 @@ export default function Home() {
+                             value={region}
+                             onChange={(event) => setRegion(event.target.value)}
+                             placeholder="Область"
++                            maxLength={100}
+                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                           />
+ 
+@@ -595,6 +592,7 @@ export default function Home() {
+                             value={district}
+                             onChange={(event) => setDistrict(event.target.value)}
+                             placeholder="Район / район міста"
++                            maxLength={100}
+                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                           />
+ 
+@@ -602,6 +600,7 @@ export default function Home() {
+                             value={city}
+                             onChange={(event) => setCity(event.target.value)}
+                             placeholder="Місто"
++                            maxLength={100}
+                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                           />
+ 
+@@ -609,6 +608,7 @@ export default function Home() {
+                             value={street}
+                             onChange={(event) => setStreet(event.target.value)}
+                             placeholder="Вулиця, номер будинку"
++                            maxLength={160}
+                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                           />
+ 
+@@ -616,15 +616,16 @@ export default function Home() {
+                             value={warehouse}
+                             onChange={(event) => setWarehouse(event.target.value)}
+                             placeholder="Відділення Нової Пошти"
++                            maxLength={120}
+                             className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                           />
+                         </div>
+                       )}
+ 
+                       <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
+-                        <p className="text-sm font-semibold text-amber-300">Оплата переказом на картку</p>
++                        <p className="text-sm font-semibold text-amber-300">Підтвердження замовлення</p>
+                         <p className="mt-1 text-sm text-white/70">
+-                          Після оформлення замовлення ми надішлемо реквізити для переказу та уточнимо деталі.
++                          Після оформлення ми зв’яжемося з вами та уточнимо всі деталі.
+                         </p>
+                       </div>
+ 
+@@ -633,15 +634,29 @@ export default function Home() {
+                         onChange={(event) => setNotes(event.target.value)}
+                         placeholder="Додаткові примітки до замовлення"
+                         rows={3}
++                        maxLength={500}
+                         className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40"
+                       />
++
++                      <label className="flex items-start gap-3 text-xs text-white/60">
++                        <input
++                          type="checkbox"
++                          checked={privacyAccepted}
++                          onChange={(event) => setPrivacyAccepted(event.target.checked)}
++                          className="mt-0.5"
++                        />
++                        <span>
++                          Погоджуюся на використання введених даних лише для обробки цього замовлення.
++                        </span>
++                      </label>
+                     </div>
+ 
+                     <button
+                       onClick={() => void submitOrder()}
+-                      className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800"
++                      disabled={submitting}
++                      className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                     >
+-                      Замовити
++                      {submitting ? "Надсилаємо..." : "Замовити"}
+                     </button>
+ 
+                     <p className="mt-3 text-xs text-white/40">
+@@ -659,5 +674,3 @@ export default function Home() {
+     </>);
+ }
+ 
+-
+-
+diff --git a/app/success/page.tsx b/app/success/page.tsx
+deleted file mode 100644
+index 5cd7a8c..0000000
+--- a/app/success/page.tsx
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import Link from "next/link";
+-
+-export default function SuccessPage() {
+-  return (
+-    <main className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
+-      <div className="max-w-xl rounded-3xl border border-white/10 bg-white/10 p-10 text-center">
+-        <h1 className="text-4xl font-black text-green-400">
+-          Bestellung erfolgreich
+-        </h1>
+-        <p className="mt-4 text-white/70">
+-          Vielen Dank für deine Bestellung bei Коблівські Вина.
+-        </p>
+-        <Link
+-          href="/"
+-          className="mt-8 inline-block rounded-full bg-red-700 px-8 py-4 font-bold hover:bg-red-800"
+-        >
+-          Zurück zum Shop
+-        </Link>
+-      </div>
+-    </main>
+-  );
+-}
+diff --git a/lib/catalog.ts b/lib/catalog.ts
+index 593cf1b..8d82139 100644
+--- a/lib/catalog.ts
++++ b/lib/catalog.ts
+@@ -11,7 +11,7 @@ export type CatalogProduct = {
+ 
+ export const catalogProducts: CatalogProduct[] = [
+   {
+-    id: "bile-vyno-shato-de-win ",
++    id: "bile-vyno-shato-de-win",
+     name: "Шато де він",
+     category: "Білі вина",
+     categoryId: "weisswein",
+diff --git a/lib/env.ts b/lib/env.ts
+index 22b9ec5..4d8ca0b 100644
+--- a/lib/env.ts
++++ b/lib/env.ts
+@@ -11,11 +11,7 @@ export function getEnvVar(name: string, required = true) {
+ export const TELEGRAM_BOT_TOKEN = getEnvVar("TELEGRAM_BOT_TOKEN", false);
+ export const TELEGRAM_CHAT_ID = getEnvVar("TELEGRAM_CHAT_ID", false);
+ export const TELEGRAM_BOT_USERNAME = getEnvVar("TELEGRAM_BOT_USERNAME", false);
+-export const TELEGRAM_WEBHOOK_SECRET = getEnvVar("TELEGRAM_WEBHOOK_SECRET", false);
+-export const ADMIN_PASSWORD = getEnvVar("ADMIN_PASSWORD", false);
+-export const NEXT_PUBLIC_SUPABASE_URL = getEnvVar("NEXT_PUBLIC_SUPABASE_URL", false);
+-export const NEXT_PUBLIC_SUPABASE_ANON_KEY = getEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY", false);
+-export const SUPABASE_SERVICE_ROLE_KEY = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", false);
++export const SITE_ORIGIN = getEnvVar("SITE_ORIGIN", false);
+ 
+ export function getTelegramBotToken() {
+   return process.env.TELEGRAM_BOT_TOKEN?.trim() || "";
+diff --git a/lib/security.ts b/lib/security.ts
+index 90af564..1baba5d 100644
+--- a/lib/security.ts
++++ b/lib/security.ts
+@@ -10,6 +10,7 @@ type RateLimitRequest = Pick<NextRequest, "headers"> & {
+ };
+ 
+ const rateLimitStore = new Map<string, RateLimitEntry>();
++const MAX_RATE_LIMIT_KEYS = 5_000;
+ 
+ function getClientIp(request: RateLimitRequest) {
+   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+@@ -27,6 +28,19 @@ export function applyRateLimit(request: RateLimitRequest, options: { limit: numb
+   const now = Date.now();
+   const existing = rateLimitStore.get(key);
+ 
++  if (rateLimitStore.size >= MAX_RATE_LIMIT_KEYS) {
++    for (const [storedKey, entry] of rateLimitStore) {
++      if (entry.resetAt <= now) {
++        rateLimitStore.delete(storedKey);
++      }
++    }
++
++    if (rateLimitStore.size >= MAX_RATE_LIMIT_KEYS) {
++      const oldestKey = rateLimitStore.keys().next().value;
++      if (oldestKey) rateLimitStore.delete(oldestKey);
++    }
++  }
++
+   if (!existing || existing.resetAt <= now) {
+     rateLimitStore.set(key, { count: 1, resetAt: now + options.windowMs });
+     return { allowed: true, retryAfter: 0 };
+@@ -49,23 +63,47 @@ export function getClientIpForLogs(request: RateLimitRequest) {
+ }
+ 
+ export function createSecurityHeaders() {
++  const isDev = process.env.NODE_ENV === "development";
++
+   return [
+     { key: "X-Content-Type-Options", value: "nosniff" },
+     { key: "X-Frame-Options", value: "DENY" },
+     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+     { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
++    { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
++    { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
++    { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+     {
+       key: "Content-Security-Policy",
+       value:
+         "default-src 'self'; " +
+-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
++        `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; ` +
+         "style-src 'self' 'unsafe-inline'; " +
+-        "img-src 'self' data: https:; " +
++        "img-src 'self' data: blob:; " +
+         "font-src 'self' data:; " +
+-        "connect-src 'self' https:; " +
++        "connect-src 'self'; " +
+         "object-src 'none'; " +
+         "base-uri 'self'; " +
+-        "form-action 'self';",
++        "form-action 'self'; " +
++        "frame-ancestors 'none'; " +
++        "upgrade-insecure-requests;",
+     },
+   ];
+ }
++
++export function isSameOriginRequest(request: NextRequest, configuredOrigin: string) {
++  const origin = request.headers.get("origin");
++
++  if (!origin) return false;
++
++  const allowedOrigins = new Set<string>([request.nextUrl.origin]);
++  if (configuredOrigin) {
++    try {
++      allowedOrigins.add(new URL(configuredOrigin).origin);
++    } catch {
++      return false;
++    }
++  }
++
++  return allowedOrigins.has(origin);
++}
+diff --git a/lib/supabase.ts b/lib/supabase.ts
+deleted file mode 100644
+index 3cf192d..0000000
+--- a/lib/supabase.ts
++++ /dev/null
+@@ -1,34 +0,0 @@
+-import { createClient } from "@supabase/supabase-js";
+-import { NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } from "@/lib/env";
+-
+-export function createSupabaseBrowserClient() {
+-  const supabaseUrl = NEXT_PUBLIC_SUPABASE_URL?.trim();
+-  const supabaseAnonKey = NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+-
+-  if (!supabaseUrl || !supabaseAnonKey) {
+-    return null;
+-  }
+-
+-  return createClient(supabaseUrl, supabaseAnonKey, {
+-    auth: {
+-      persistSession: false,
+-      autoRefreshToken: false,
+-    },
+-  });
+-}
+-
+-export function createSupabaseServerClient() {
+-  const supabaseUrl = NEXT_PUBLIC_SUPABASE_URL?.trim();
+-  const serviceRoleKey = SUPABASE_SERVICE_ROLE_KEY?.trim();
+-
+-  if (!supabaseUrl || !serviceRoleKey) {
+-    return null;
+-  }
+-
+-  return createClient(supabaseUrl, serviceRoleKey, {
+-    auth: {
+-      persistSession: false,
+-      autoRefreshToken: false,
+-    },
+-  });
+-}
+diff --git a/next.config.ts b/next.config.ts
+index 2b5d01c..b3646e2 100644
+--- a/next.config.ts
++++ b/next.config.ts
+@@ -4,6 +4,13 @@ import { createSecurityHeaders } from "@/lib/security";
+ const nextConfig: NextConfig = {
+   async headers() {
+     return [
++      {
++        source: "/api/:path*",
++        headers: [
++          { key: "Cache-Control", value: "no-store, max-age=0" },
++          { key: "Pragma", value: "no-cache" },
++        ],
++      },
+       {
+         source: "/(.*)",
+         headers: createSecurityHeaders(),
+diff --git a/package-lock.json b/package-lock.json
+index 1faab93..ebacce1 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -8,14 +8,11 @@
+       "name": "koblivski-vyna",
+       "version": "0.1.0",
+       "dependencies": {
+-        "@supabase/ssr": "^0.12.4",
+-        "@supabase/supabase-js": "^2.111.0",
+         "framer-motion": "^12.42.2",
+         "lucide-react": "^1.22.0",
+-        "next": "16.2.9",
++        "next": "16.3.1",
+         "react": "19.2.4",
+-        "react-dom": "19.2.4",
+-        "stripe": "^22.3.0"
++        "react-dom": "19.2.4"
+       },
+       "devDependencies": {
+         "@tailwindcss/postcss": "^4",
+@@ -23,7 +20,7 @@
+         "@types/react": "^19",
+         "@types/react-dom": "^19",
+         "eslint": "^9",
+-        "eslint-config-next": "16.2.9",
++        "eslint-config-next": "16.3.1",
+         "tailwindcss": "^4",
+         "typescript": "^5"
+       }
+@@ -535,9 +532,9 @@
+       }
+     },
+     "node_modules/@img/sharp-darwin-arm64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.34.5.tgz",
+-      "integrity": "sha512-imtQ3WMJXbMY4fxb/Ndp6HBTNVtWCUI0WdobyheGf5+ad6xX8VIDO8u2xE4qc/fr08CKG/7dDseFtn6M6g/r3w==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.3.tgz",
++      "integrity": "sha512-RMnFX7YQsMoh7lWfcM4NEHHymBX/rLuKNPVM84XE9ONPcaSCDgE7CHIHpSgPcO2xcRthgBy1HfNO319mwhIAkg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -547,19 +544,19 @@
+         "darwin"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-darwin-arm64": "1.2.4"
++        "@img/sharp-libvips-darwin-arm64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-darwin-x64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.34.5.tgz",
+-      "integrity": "sha512-YNEFAF/4KQ/PeW0N+r+aVVsoIY0/qxxikF2SWdp+NRkmMB7y9LBZAVqQ4yhGCm/H3H270OSykqmQMKLBhBJDEw==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.3.tgz",
++      "integrity": "sha512-Xo+5uFBtLN0BKqieTxiFzFPQAUlBbbH5iBKyRX/z1JrbnYsHTfKJnUfL8+p2TPXr1pXqao4eeL4Rl144uDpK9w==",
+       "cpu": [
+         "x64"
+       ],
+@@ -569,19 +566,38 @@
+         "darwin"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-darwin-x64": "1.2.4"
++        "@img/sharp-libvips-darwin-x64": "1.3.2"
++      }
++    },
++    "node_modules/@img/sharp-freebsd-wasm32": {
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.3.tgz",
++      "integrity": "sha512-lUxcqWIj2wMQ9BrwNjngcr1gWUr5xgaGThBRqPPalIC2n67Cqj1uPh8NnA/ZhAg8hUbKl+kVHKwgUIwe6ZYPrg==",
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "dependencies": {
++        "@img/sharp-wasm32": "0.35.3"
++      },
++      "engines": {
++        "node": ">=20.9.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/libvips"
+       }
+     },
+     "node_modules/@img/sharp-libvips-darwin-arm64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.2.4.tgz",
+-      "integrity": "sha512-zqjjo7RatFfFoP0MkQ51jfuFZBnVE2pRiaydKJ1G/rHZvnsrHAOcQALIi9sA5co5xenQdTugCvtb1cuf78Vf4g==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.2.tgz",
++      "integrity": "sha512-9J6ypZFpQBj4YnePGoq/S38w6nz+vqg5WZLrLGY4YuSemdMq47GMLBPO42MzwdGwpg/agZ7xzZcFHa48xlywfg==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -595,9 +611,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-darwin-x64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.2.4.tgz",
+-      "integrity": "sha512-1IOd5xfVhlGwX+zXv2N93k0yMONvUlANylbJw1eTah8K/Jtpi15KC+WSiaX/nBmbm2HxRM1gZ0nSdjSsrZbGKg==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.2.tgz",
++      "integrity": "sha512-m2pW1n6cns9VaubNwsZ+c3CRYjxNQWgJ5gPlnL1nbBcpkBvFm6SCFN5o0psFHI8w9n11NKhFkeEDns98tiqbEw==",
+       "cpu": [
+         "x64"
+       ],
+@@ -611,9 +627,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-arm": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.2.4.tgz",
+-      "integrity": "sha512-bFI7xcKFELdiNCVov8e44Ia4u2byA+l3XtsAj+Q8tfCwO6BQ8iDojYdvoPMqsKDkuoOo+X6HZA0s0q11ANMQ8A==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.2.tgz",
++      "integrity": "sha512-1eMLzy92I4J6rmi4mAT8yC3HxOtniyGELlzGbNMLLeqe052ahFQ0h6LFq+lh5DsDIdYViIDst08abvSbcEdLXQ==",
+       "cpu": [
+         "arm"
+       ],
+@@ -627,9 +643,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-arm64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.2.4.tgz",
+-      "integrity": "sha512-excjX8DfsIcJ10x1Kzr4RcWe1edC9PquDRRPx3YVCvQv+U5p7Yin2s32ftzikXojb1PIFc/9Mt28/y+iRklkrw==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.2.tgz",
++      "integrity": "sha512-dqVSFynCox4C/J8kT16V7SIFAns0IjgLwkvYT7p8LQVmJ5OS5b6tI9IGflxTeuBS//zXeFIUbwt5dwxyZ17cnA==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -643,9 +659,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-ppc64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.2.4.tgz",
+-      "integrity": "sha512-FMuvGijLDYG6lW+b/UvyilUWu5Ayu+3r2d1S8notiGCIyYU/76eig1UfMmkZ7vwgOrzKzlQbFSuQfgm7GYUPpA==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.2.tgz",
++      "integrity": "sha512-3z0NHDxD6n5I9gc05U1eW1AyRm+Gznzq3naMrthPNqE6oYykcogW0l/jfpJdjYnuNl8R7yI9pNbE1XiUeyq0Aw==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -659,9 +675,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-riscv64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.2.4.tgz",
+-      "integrity": "sha512-oVDbcR4zUC0ce82teubSm+x6ETixtKZBh/qbREIOcI3cULzDyb18Sr/Wcyx7NRQeQzOiHTNbZFF1UwPS2scyGA==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.2.tgz",
++      "integrity": "sha512-bsb4rI+NldGOsXuej2r8OdSS8+zXDVaCWxyWrcv6kneTOlgAHtZABRzBBCwdsPiD90J4myNJuHpg6kA20ImW/w==",
+       "cpu": [
+         "riscv64"
+       ],
+@@ -675,9 +691,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-s390x": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.2.4.tgz",
+-      "integrity": "sha512-qmp9VrzgPgMoGZyPvrQHqk02uyjA0/QrTO26Tqk6l4ZV0MPWIW6LTkqOIov+J1yEu7MbFQaDpwdwJKhbJvuRxQ==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.2.tgz",
++      "integrity": "sha512-/ABshyj8gCpyIrNXnHn4LorDJ0HHm1VhXPBlxZ8zAtfVPAaSafXPGn+sUSIRiwaSBy0mmFjSjiXI5mkcwdChKQ==",
+       "cpu": [
+         "s390x"
+       ],
+@@ -691,9 +707,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linux-x64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.2.4.tgz",
+-      "integrity": "sha512-tJxiiLsmHc9Ax1bz3oaOYBURTXGIRDODBqhveVHonrHJ9/+k89qbLl0bcJns+e4t4rvaNBxaEZsFtSfAdquPrw==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.2.tgz",
++      "integrity": "sha512-ITPEtgffGJ0S6G9dRyw/366tJQqFRcHWPHhC+Stpg3Z8AEMrDrTr2lhdz4f/Y/HMbRh//7Z5mBzEpVdi62Oc3w==",
+       "cpu": [
+         "x64"
+       ],
+@@ -707,9 +723,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linuxmusl-arm64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.2.4.tgz",
+-      "integrity": "sha512-FVQHuwx1IIuNow9QAbYUzJ+En8KcVm9Lk5+uGUQJHaZmMECZmOlix9HnH7n1TRkXMS0pGxIJokIVB9SuqZGGXw==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.2.tgz",
++      "integrity": "sha512-zE9EdiUzUmg5mDT5a1rk5fYJ6GWPloTwWBYDS14naqHsL+EaMpDj1AWnpLgh3u0YCORv2Tt50wrcrpYqkP97Kw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -723,9 +739,9 @@
+       }
+     },
+     "node_modules/@img/sharp-libvips-linuxmusl-x64": {
+-      "version": "1.2.4",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.2.4.tgz",
+-      "integrity": "sha512-+LpyBk7L44ZIXwz/VYfglaX/okxezESc6UxDSoyo2Ks6Jxc4Y7sGjpgU9s4PMgqgjj1gZCylTieNamqA1MF7Dg==",
++      "version": "1.3.2",
++      "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.2.tgz",
++      "integrity": "sha512-m0lrLiUt+lBYnCFr8qV/65yMR4E/c7/wf78I5eKTdkEakFAlZ9QlzEM3QIhhAwVeUhLAHLcCq7a7Vszq/oFNZQ==",
+       "cpu": [
+         "x64"
+       ],
+@@ -739,9 +755,9 @@
+       }
+     },
+     "node_modules/@img/sharp-linux-arm": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.34.5.tgz",
+-      "integrity": "sha512-9dLqsvwtg1uuXBGZKsxem9595+ujv0sJ6Vi8wcTANSFpwV/GONat5eCkzQo/1O6zRIkh0m/8+5BjrRr7jDUSZw==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.3.tgz",
++      "integrity": "sha512-affVWCTLooy8TSxbDx2qkzuDeaWLNVBA+P//FNBirHsXpP2fuBhk5AuboYUnrDnzoXes8GFjpTx0SBFOCRg+FA==",
+       "cpu": [
+         "arm"
+       ],
+@@ -751,19 +767,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-arm": "1.2.4"
++        "@img/sharp-libvips-linux-arm": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linux-arm64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.34.5.tgz",
+-      "integrity": "sha512-bKQzaJRY/bkPOXyKx5EVup7qkaojECG6NLYswgktOZjaXecSAeCWiZwwiFf3/Y+O1HrauiE3FVsGxFg8c24rZg==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.3.tgz",
++      "integrity": "sha512-QgKDspHPnrU+GQ55XPhGwyhC8acLVOOSyAvo1oVfFmrIXLkDNmGWzAfDZ4xK8oSA1qBQrALcHX0G5UZni/SuFQ==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -773,19 +789,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-arm64": "1.2.4"
++        "@img/sharp-libvips-linux-arm64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linux-ppc64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.34.5.tgz",
+-      "integrity": "sha512-7zznwNaqW6YtsfrGGDA6BRkISKAAE1Jo0QdpNYXNMHu2+0dTrPflTLNkpc8l7MUP5M16ZJcUvysVWWrMefZquA==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.3.tgz",
++      "integrity": "sha512-sMd8rDxmpLOwv/7N44klFjOD5DUO7FLdjiXDI0hoxYaf7Ar262dQIEkosE98bps+5HPLtp/EvNqeqQtOycP/IA==",
+       "cpu": [
+         "ppc64"
+       ],
+@@ -795,19 +811,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-ppc64": "1.2.4"
++        "@img/sharp-libvips-linux-ppc64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linux-riscv64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.34.5.tgz",
+-      "integrity": "sha512-51gJuLPTKa7piYPaVs8GmByo7/U7/7TZOq+cnXJIHZKavIRHAP77e3N2HEl3dgiqdD/w0yUfiJnII77PuDDFdw==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.3.tgz",
++      "integrity": "sha512-0Eob78yjlYPfL5vMNWAW55l3R9Y6BQS/gOfe0ZcP9mEz9ohhKSt4im1hayiknXgf8AWrFqMvJcKIdmLmEe7yeQ==",
+       "cpu": [
+         "riscv64"
+       ],
+@@ -817,19 +833,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-riscv64": "1.2.4"
++        "@img/sharp-libvips-linux-riscv64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linux-s390x": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.34.5.tgz",
+-      "integrity": "sha512-nQtCk0PdKfho3eC5MrbQoigJ2gd1CgddUMkabUj+rBevs8tZ2cULOx46E7oyX+04WGfABgIwmMC0VqieTiR4jg==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.3.tgz",
++      "integrity": "sha512-KgAxQ0DxpNOq1rG2t5cgTgShJFGSuU7XO45cqC+1NVOuZnP6tlgZRuSYOfNupGkHID0o3cJOsw4DVeJpMovcGw==",
+       "cpu": [
+         "s390x"
+       ],
+@@ -839,19 +855,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-s390x": "1.2.4"
++        "@img/sharp-libvips-linux-s390x": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linux-x64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.34.5.tgz",
+-      "integrity": "sha512-MEzd8HPKxVxVenwAa+JRPwEC7QFjoPWuS5NZnBt6B3pu7EG2Ge0id1oLHZpPJdn3OQK+BQDiw9zStiHBTJQQQQ==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.3.tgz",
++      "integrity": "sha512-8pqvxubL2PGdhlPy6GLqzDYMUjyRmKAwKHYKixpdJYBUK7PJ0C029XdsnpFIdgRZG68fZiGdHVWcKPvtiPB4cA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -861,19 +877,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linux-x64": "1.2.4"
++        "@img/sharp-libvips-linux-x64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linuxmusl-arm64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.34.5.tgz",
+-      "integrity": "sha512-fprJR6GtRsMt6Kyfq44IsChVZeGN97gTD331weR1ex1c1rypDEABN6Tm2xa1wE6lYb5DdEnk03NZPqA7Id21yg==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.3.tgz",
++      "integrity": "sha512-Vz0iQjzzcSX3HCbfwFfCSG/9SCIqyO0mH2sXyiHaAYfBk0cRsCWXRyQYX0ovCK/PAQBbTzQ0dsPQHh5MAFL59w==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -883,19 +899,19 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linuxmusl-arm64": "1.2.4"
++        "@img/sharp-libvips-linuxmusl-arm64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-linuxmusl-x64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.34.5.tgz",
+-      "integrity": "sha512-Jg8wNT1MUzIvhBFxViqrEhWDGzqymo3sV7z7ZsaWbZNDLXRJZoRGrjulp60YYtV4wfY8VIKcWidjojlLcWrd8Q==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.3.tgz",
++      "integrity": "sha512-6O1NPKcDVj9QEdg7Hx549EX8U0rp6yXQERqru6yRN7fGBn32UvIRJUlWnk+8xDCiG76hXVBbX82NZ/ZKr0euIg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -905,38 +921,54 @@
+         "linux"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-libvips-linuxmusl-x64": "1.2.4"
++        "@img/sharp-libvips-linuxmusl-x64": "1.3.2"
+       }
+     },
+     "node_modules/@img/sharp-wasm32": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.34.5.tgz",
+-      "integrity": "sha512-OdWTEiVkY2PHwqkbBI8frFxQQFekHaSSkUIJkwzclWZe64O1X4UlUjqqqLaPbUpMOQk6FBu/HtlGXNblIs0huw==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.3.tgz",
++      "integrity": "sha512-cZ0XkcYGpHZkqW6iCkqTcmUC0CD9DhD5d/qeZlZkfRBn6GnHniZXLUo5+9xw8Iv76YE6LQFN9YNBlKREcCG76w==",
++      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
++      "optional": true,
++      "dependencies": {
++        "@emnapi/runtime": "^1.11.1"
++      },
++      "engines": {
++        "node": ">=20.9.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/libvips"
++      }
++    },
++    "node_modules/@img/sharp-webcontainers-wasm32": {
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.3.tgz",
++      "integrity": "sha512-2rnq7bX3NzeR2T4YWgz8qiG4h3TSdMe+vN1iQXpJleSJ3SM5zQ8Fy2SyyXAWlbxpEZ2Y+Z4u1BePgJEYbSy80Q==",
+       "cpu": [
+         "wasm32"
+       ],
+-      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
++      "license": "Apache-2.0",
+       "optional": true,
+       "dependencies": {
+-        "@emnapi/runtime": "^1.7.0"
++        "@img/sharp-wasm32": "0.35.3"
+       },
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       }
+     },
+     "node_modules/@img/sharp-win32-arm64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.34.5.tgz",
+-      "integrity": "sha512-WQ3AgWCWYSb2yt+IG8mnC6Jdk9Whs7O0gxphblsLvdhSpSTtmu69ZG1Gkb6NuvxsNACwiPV6cNSZNzt0KPsw7g==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.3.tgz",
++      "integrity": "sha512-4bPwFdMbeC4JQ8L8LOyWp6nsHcboP5fxkp6iPOXz2Vg49R42TuMs2whkJ5OAP4/Ul035qOzy0AecOF9VOscn4w==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -946,16 +978,16 @@
+         "win32"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       }
+     },
+     "node_modules/@img/sharp-win32-ia32": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.34.5.tgz",
+-      "integrity": "sha512-FV9m/7NmeCmSHDD5j4+4pNI8Cp3aW+JvLoXcTUo0IqyjSfAZJ8dIUmijx1qaJsIiU+Hosw6xM5KijAWRJCSgNg==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.3.tgz",
++      "integrity": "sha512-r53mXsBN6lFUDiST764SvgwUdHAqM4rPAiDzAmf4fLoB6X/rkfyTrLCg6+g17wJJiCmB3JYgHuUldCWUIRFSXw==",
+       "cpu": [
+         "ia32"
+       ],
+@@ -965,16 +997,16 @@
+         "win32"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": "^20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       }
+     },
+     "node_modules/@img/sharp-win32-x64": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.34.5.tgz",
+-      "integrity": "sha512-+29YMsqY2/9eFEiW93eqWnuLcWcufowXewwSNIT6UwZdUUCrM3oFjMWH/Z6/TMmb4hlFenmfAVbpWeup2jryCw==",
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.3.tgz",
++      "integrity": "sha512-D4y1vNeZrIIJCN+uHaWVtH86B+aCrdMYYjicy9pXHvbGZeGYLLSd3wdVuC37FxVXlU1ARsk84eKWfWMXGYEqvA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -984,7 +1016,7 @@
+         "win32"
+       ],
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+@@ -1060,25 +1092,26 @@
+       }
+     },
+     "node_modules/@next/env": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/env/-/env-16.2.9.tgz",
+-      "integrity": "sha512-ki5VxxXfzD/9TDe13wyeTKIjQTAwBVpnr8KhRDUr8ltMUq1/NBpWNT5tiPoxiGl+PHM4X2ahSOiPk6iAimIzPg==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/env/-/env-16.3.1.tgz",
++      "integrity": "sha512-35G3xwkQUb2oETSDjFXGrVugknoayLFBh7vSE+yAcl9IP2zT9wyGwq7297AYHR11kJld807t5f8AJBs6WBzXsQ==",
+       "license": "MIT"
+     },
+     "node_modules/@next/eslint-plugin-next": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/eslint-plugin-next/-/eslint-plugin-next-16.2.9.tgz",
+-      "integrity": "sha512-UZi8+YT/MLgTC9nrrn2Xd4lBYv1B7lVmtWHfPcthAI5Tt/C1LuDe6DfmtCtJ+WQod3ksY4VrKSvk3oMVAnL7qw==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/eslint-plugin-next/-/eslint-plugin-next-16.3.1.tgz",
++      "integrity": "sha512-B4SznlXwVpaLDa7Tbi6zLuueria2d/PmFDhXyDymPGrk2r1n/RMJmcn5FZq1L64k+Jsyte1lKvOr7lP9Xo80mQ==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
++        "@eslint-community/eslint-utils": "4.9.1",
+         "fast-glob": "3.3.1"
+       }
+     },
+     "node_modules/@next/swc-darwin-arm64": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.2.9.tgz",
+-      "integrity": "sha512-HkfxNYUCmcct0Xsqib5KxqMSHV4AHJq857BNRchyBDs4YS19aHzVfn1kDuBYKqLLQBjXgnkIsjV2Kd4d2wzYhw==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.3.1.tgz",
++      "integrity": "sha512-ABMIu2zQ7cnNIHm5ivKGwZwUrm0pAai3yiJ/gK/rF1c1VP9UOnj7XECbMKFdVKp9I9eMYq9NoDs1WXOoowxzJw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1092,9 +1125,9 @@
+       }
+     },
+     "node_modules/@next/swc-darwin-x64": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.2.9.tgz",
+-      "integrity": "sha512-7IAtK4MeybpqRV9GRABWEhJ62mOS+rzWOzOTFie4cSEtm12xsoOMJRcECoZx3FHPzFAqN/IJtHqWAFOLfl152w==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.3.1.tgz",
++      "integrity": "sha512-gNG21e/UnrroeScbY/QndUEdl0mF1FRibW7BBeYUz/5ABCepjqDdEdgr592vpzMtCn/m7FTjYq3TN4TpyDnutw==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1108,9 +1141,9 @@
+       }
+     },
+     "node_modules/@next/swc-linux-arm64-gnu": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.2.9.tgz",
+-      "integrity": "sha512-hBD75iWpUtkL9SmQmcRhmLomn9jgkPzCEkbOcLgHymPEKzv+6ONy13RRiIEz/iEObjkS2Jlb5gYS2XGoS3X4rw==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.3.1.tgz",
++      "integrity": "sha512-6B6Lw016iwNUQuaJoraMMTLh6TwHzFUtxipSScD1F3YyymcrRWkobodRS2ftIOkF5vrs4zNlyUrTC5YZQ9Lz5w==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1124,9 +1157,9 @@
+       }
+     },
+     "node_modules/@next/swc-linux-arm64-musl": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.2.9.tgz",
+-      "integrity": "sha512-qZTI3pf9SGc/obr8NkQAekBxmp1QK+kVm+VAf3BALLfFAj+1kUhkTxmrWpVos9R/UYIA8AWX2p6cGI5WdwzVUA==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.3.1.tgz",
++      "integrity": "sha512-JUiPXZKK9wOhjf4MgDiH29GZLxfqOesbLtHq2pDxwH/WwscTRV2ToymnOTh1egzaZf0ueUf8T2+CeYTGHjW0Iw==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1140,9 +1173,9 @@
+       }
+     },
+     "node_modules/@next/swc-linux-x64-gnu": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.2.9.tgz",
+-      "integrity": "sha512-xm0HfRNX+UkH4R3c18ynswjj5o5uEj/7iI9p9omdtTSIsRCzQqkGMA+10nzJ4EHnYC3as65IMhbbl5fWRUWHYg==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.3.1.tgz",
++      "integrity": "sha512-Uog9jsrmIRIL/lfvIp9htmskSNC7JcQsMVucXL2V2YY1y/D9IUN3LPEafqy0zRJ2cIU1SQ0V6F6TlffQ+pLAGg==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1156,9 +1189,9 @@
+       }
+     },
+     "node_modules/@next/swc-linux-x64-musl": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.2.9.tgz",
+-      "integrity": "sha512-QumimHkGEG6vM3PfEDWKyKen03NcqLOkeKB1EfcPe7VxzmEiCa4jNnMyBn/US5zcd/VE1CI+O8Ovb3lfjVHfGw==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.3.1.tgz",
++      "integrity": "sha512-6yy3FT13KgUFOj5H8bl8w/6nKiJwHIvbtwh1V+1acsu+7y4tJjnemSa6mhsh53BeoVrlozE+fMgZhXH46WmjMA==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1172,9 +1205,9 @@
+       }
+     },
+     "node_modules/@next/swc-win32-arm64-msvc": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.2.9.tgz",
+-      "integrity": "sha512-hzQpKZvw8rAwI6A2uQh6SacCSvNAXaIkPNsWwzqqfRiIMiXMfH936skDhz1OO6KpvdKkJrgHHtqQOq5PIXOvdQ==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.3.1.tgz",
++      "integrity": "sha512-iOoN1QecUoGNZik536U/vtK43YwgyrCsGIkth52yIkl612n+0C9MjSnJbQAikISpb+WYRooBVhaDlUW7iZoKog==",
+       "cpu": [
+         "arm64"
+       ],
+@@ -1188,9 +1221,9 @@
+       }
+     },
+     "node_modules/@next/swc-win32-x64-msvc": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.2.9.tgz",
+-      "integrity": "sha512-qr2VL3Ce5QrwgO2yh1ujSBawrimjVKX8FGF/cOynmdYKJY0BdHpGVNIRK1tqONB10Vkm25Ub1BD2bkjWs4+96w==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.3.1.tgz",
++      "integrity": "sha512-d/k+PpAriUPaeMJJOG7HUSdqfEX46FEPWU1p3/nm2ACmXhj9hFEWdFODUBIpkuijXYkfL90qZzTqVPRp4BW/hw==",
+       "cpu": [
+         "x64"
+       ],
+@@ -1258,106 +1291,10 @@
+       "dev": true,
+       "license": "MIT"
+     },
+-    "node_modules/@supabase/auth-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/auth-js/-/auth-js-2.111.0.tgz",
+-      "integrity": "sha512-hbRLgyQZEX0SDyF4LYXpv94qOIQyFATfpT5SIs2V0SisHnisVRkYgiPQWzv80l4S2mO3qof78rmoH9j5zoFsYQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "tslib": "2.8.1"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+-    "node_modules/@supabase/functions-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/functions-js/-/functions-js-2.111.0.tgz",
+-      "integrity": "sha512-RW/OCsd6MO592zU8ifzP8/f8XzxxIdpb+Up5XaOtE26Fw+3zTp475WX7+GuuktiD1WF8pFUDe6khUPbMp77RCw==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "tslib": "2.8.1"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+-    "node_modules/@supabase/phoenix": {
+-      "version": "0.4.5",
+-      "resolved": "https://registry.npmjs.org/@supabase/phoenix/-/phoenix-0.4.5.tgz",
+-      "integrity": "sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==",
+-      "license": "MIT"
+-    },
+-    "node_modules/@supabase/postgrest-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/postgrest-js/-/postgrest-js-2.111.0.tgz",
+-      "integrity": "sha512-pcqeDsnWP0lx9GawduYxNZJHeuTm53O7L0SC8RF8tniV3GWIPY6me6OTdnwzdwNUmNy1dzUVtSyIfE6+OflzPQ==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "tslib": "2.8.1"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+-    "node_modules/@supabase/realtime-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/realtime-js/-/realtime-js-2.111.0.tgz",
+-      "integrity": "sha512-6oRf/vZyRwg8f8GbFSJkrD2w4HAu/yTvyMViHXHS+H5hNJzdXCrUR7cP5oW7daT3YlRnzRPY9LcGSJKZAmfMSg==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "@supabase/phoenix": "0.4.5",
+-        "tslib": "2.8.1"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+-    "node_modules/@supabase/ssr": {
+-      "version": "0.12.4",
+-      "resolved": "https://registry.npmjs.org/@supabase/ssr/-/ssr-0.12.4.tgz",
+-      "integrity": "sha512-xHzcgI8cC1TpBKSwJcR5Yd8CCwfIq0SBc5yb4yz/YFw5tbCrEQ0QT3a+2jymCxHgQWLfzwN93HZ6eRbcoMkOlA==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "cookie": "^1.0.2"
+-      },
+-      "peerDependencies": {
+-        "@supabase/supabase-js": "^2.111.0"
+-      }
+-    },
+-    "node_modules/@supabase/storage-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/storage-js/-/storage-js-2.111.0.tgz",
+-      "integrity": "sha512-UEViNmTzVOxE8dqUA81wls+n9xgmlvSFfhfwo6QxrO4kQOytCYyw3ciYFoi4XoD4Jl95NJ3jnndHN5iIudWzqw==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "iceberg-js": "^0.8.1",
+-        "tslib": "2.8.1"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+-    "node_modules/@supabase/supabase-js": {
+-      "version": "2.111.0",
+-      "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.111.0.tgz",
+-      "integrity": "sha512-9q0/AULthQnWeiDh1vGyjoJZbSY04bu6qHcWit70pqEYn5Kv/dkCPY62Ja1123jEnJbB9Vd2pjY7Kvk/lK3peA==",
+-      "license": "MIT",
+-      "dependencies": {
+-        "@supabase/auth-js": "2.111.0",
+-        "@supabase/functions-js": "2.111.0",
+-        "@supabase/postgrest-js": "2.111.0",
+-        "@supabase/realtime-js": "2.111.0",
+-        "@supabase/storage-js": "2.111.0"
+-      },
+-      "engines": {
+-        "node": ">=22.0.0"
+-      }
+-    },
+     "node_modules/@swc/helpers": {
+-      "version": "0.5.15",
+-      "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.15.tgz",
+-      "integrity": "sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==",
++      "version": "0.5.23",
++      "resolved": "https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.23.tgz",
++      "integrity": "sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==",
+       "license": "Apache-2.0",
+       "dependencies": {
+         "tslib": "^2.8.0"
+@@ -1586,6 +1523,72 @@
+         "node": ">=14.0.0"
+       }
+     },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/core": {
++      "version": "1.11.1",
++      "dev": true,
++      "inBundle": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "@emnapi/wasi-threads": "1.2.2",
++        "tslib": "^2.4.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/runtime": {
++      "version": "1.11.1",
++      "dev": true,
++      "inBundle": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "tslib": "^2.4.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@emnapi/wasi-threads": {
++      "version": "1.2.2",
++      "dev": true,
++      "inBundle": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "tslib": "^2.4.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@napi-rs/wasm-runtime": {
++      "version": "1.1.4",
++      "dev": true,
++      "inBundle": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "@tybys/wasm-util": "^0.10.1"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/Brooooooklyn"
++      },
++      "peerDependencies": {
++        "@emnapi/core": "^1.7.1",
++        "@emnapi/runtime": "^1.7.1"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/@tybys/wasm-util": {
++      "version": "0.10.2",
++      "dev": true,
++      "inBundle": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "tslib": "^2.4.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi/node_modules/tslib": {
++      "version": "2.8.1",
++      "dev": true,
++      "inBundle": true,
++      "license": "0BSD",
++      "optional": true
++    },
+     "node_modules/@tailwindcss/oxide-win32-arm64-msvc": {
+       "version": "4.3.2",
+       "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-win32-arm64-msvc/-/oxide-win32-arm64-msvc-4.3.2.tgz",
+@@ -1670,7 +1673,7 @@
+       "version": "20.19.43",
+       "resolved": "https://registry.npmjs.org/@types/node/-/node-20.19.43.tgz",
+       "integrity": "sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==",
+-      "devOptional": true,
++      "dev": true,
+       "license": "MIT",
+       "dependencies": {
+         "undici-types": "~6.21.0"
+@@ -2815,19 +2818,6 @@
+       "dev": true,
+       "license": "MIT"
+     },
+-    "node_modules/cookie": {
+-      "version": "1.1.1",
+-      "resolved": "https://registry.npmjs.org/cookie/-/cookie-1.1.1.tgz",
+-      "integrity": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=18"
+-      },
+-      "funding": {
+-        "type": "opencollective",
+-        "url": "https://opencollective.com/express"
+-      }
+-    },
+     "node_modules/cross-spawn": {
+       "version": "7.0.6",
+       "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+@@ -3321,13 +3311,13 @@
+       }
+     },
+     "node_modules/eslint-config-next": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/eslint-config-next/-/eslint-config-next-16.2.9.tgz",
+-      "integrity": "sha512-olGtBrs07bQchpaJWeqbk9GaMoU0oGmN/pYNEBXSbfgKngb5uHnPe37X6tVeh6DJfaWFQildvinGEOrolo5fmw==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/eslint-config-next/-/eslint-config-next-16.3.1.tgz",
++      "integrity": "sha512-0vtrpwFVHFEkycUgV/DyrG29OS+HSRdah5Yu8YuZoiBMtlAT6NIiWzaLwDkJZxr2kGfx+9LIvfQ7KHAlEs0VsA==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+-        "@next/eslint-plugin-next": "16.2.9",
++        "@next/eslint-plugin-next": "16.3.1",
+         "eslint-import-resolver-node": "^0.3.6",
+         "eslint-import-resolver-typescript": "^3.5.2",
+         "eslint-plugin-import": "^2.32.0",
+@@ -4142,15 +4132,6 @@
+         "hermes-estree": "0.25.1"
+       }
+     },
+-    "node_modules/iceberg-js": {
+-      "version": "0.8.1",
+-      "resolved": "https://registry.npmjs.org/iceberg-js/-/iceberg-js-0.8.1.tgz",
+-      "integrity": "sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=20.0.0"
+-      }
+-    },
+     "node_modules/ignore": {
+       "version": "5.3.2",
+       "resolved": "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz",
+@@ -5219,9 +5200,9 @@
+       "license": "MIT"
+     },
+     "node_modules/nanoid": {
+-      "version": "3.3.15",
+-      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.15.tgz",
+-      "integrity": "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==",
++      "version": "3.3.18",
++      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.18.tgz",
++      "integrity": "sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==",
+       "funding": [
+         {
+           "type": "github",
+@@ -5260,16 +5241,16 @@
+       "license": "MIT"
+     },
+     "node_modules/next": {
+-      "version": "16.2.9",
+-      "resolved": "https://registry.npmjs.org/next/-/next-16.2.9.tgz",
+-      "integrity": "sha512-MEOJiq/UvuezAdqVSceHbqDgZt1kDw2tpGVOlsdIoJsQdbN2JY2hpVG4xnXGkbdJUOEWhnRfiu/O4Hpc9Juwww==",
++      "version": "16.3.1",
++      "resolved": "https://registry.npmjs.org/next/-/next-16.3.1.tgz",
++      "integrity": "sha512-hsAp0i7Rh+/dhe7DGIeN2YlpLM1DP4MNxti9EtDMtqcO612X81MvvEj388/oTce9U1EcEIOWDlGq0zRwrBKvuA==",
+       "license": "MIT",
+       "dependencies": {
+-        "@next/env": "16.2.9",
+-        "@swc/helpers": "0.5.15",
++        "@next/env": "16.3.1",
++        "@swc/helpers": "0.5.23",
+         "baseline-browser-mapping": "^2.9.19",
+         "caniuse-lite": "^1.0.30001579",
+-        "postcss": "8.4.31",
++        "postcss": "8.5.23",
+         "styled-jsx": "5.1.6"
+       },
+       "bin": {
+@@ -5279,15 +5260,15 @@
+         "node": ">=20.9.0"
+       },
+       "optionalDependencies": {
+-        "@next/swc-darwin-arm64": "16.2.9",
+-        "@next/swc-darwin-x64": "16.2.9",
+-        "@next/swc-linux-arm64-gnu": "16.2.9",
+-        "@next/swc-linux-arm64-musl": "16.2.9",
+-        "@next/swc-linux-x64-gnu": "16.2.9",
+-        "@next/swc-linux-x64-musl": "16.2.9",
+-        "@next/swc-win32-arm64-msvc": "16.2.9",
+-        "@next/swc-win32-x64-msvc": "16.2.9",
+-        "sharp": "^0.34.5"
++        "@next/swc-darwin-arm64": "16.3.1",
++        "@next/swc-darwin-x64": "16.3.1",
++        "@next/swc-linux-arm64-gnu": "16.3.1",
++        "@next/swc-linux-arm64-musl": "16.3.1",
++        "@next/swc-linux-x64-gnu": "16.3.1",
++        "@next/swc-linux-x64-musl": "16.3.1",
++        "@next/swc-win32-arm64-msvc": "16.3.1",
++        "@next/swc-win32-x64-msvc": "16.3.1",
++        "sharp": "^0.35.3"
+       },
+       "peerDependencies": {
+         "@opentelemetry/api": "^1.1.0",
+@@ -5312,34 +5293,6 @@
+         }
+       }
+     },
+-    "node_modules/next/node_modules/postcss": {
+-      "version": "8.4.31",
+-      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.4.31.tgz",
+-      "integrity": "sha512-PS08Iboia9mts/2ygV3eLpY5ghnUcfLV/EXTOW1E2qYxJKGGBUtNjN76FYHnMs36RmARn41bC0AZmn+rR0OVpQ==",
+-      "funding": [
+-        {
+-          "type": "opencollective",
+-          "url": "https://opencollective.com/postcss/"
+-        },
+-        {
+-          "type": "tidelift",
+-          "url": "https://tidelift.com/funding/github/npm/postcss"
+-        },
+-        {
+-          "type": "github",
+-          "url": "https://github.com/sponsors/ai"
+-        }
+-      ],
+-      "license": "MIT",
+-      "dependencies": {
+-        "nanoid": "^3.3.6",
+-        "picocolors": "^1.0.0",
+-        "source-map-js": "^1.0.2"
+-      },
+-      "engines": {
+-        "node": "^10 || ^12 || >=14"
+-      }
+-    },
+     "node_modules/node-exports-info": {
+       "version": "1.6.2",
+       "resolved": "https://registry.npmjs.org/node-exports-info/-/node-exports-info-1.6.2.tgz",
+@@ -5630,10 +5583,9 @@
+       }
+     },
+     "node_modules/postcss": {
+-      "version": "8.5.16",
+-      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.16.tgz",
+-      "integrity": "sha512-vuwillviilfKZsg0VGj5R/YwwcHx4SLsIOI/7K6mQkWx+l5cUHTjj5g0AasTBcyXsbfTgrwsUNmVUb5xVwyPwg==",
+-      "dev": true,
++      "version": "8.5.23",
++      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.23.tgz",
++      "integrity": "sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==",
+       "funding": [
+         {
+           "type": "opencollective",
+@@ -5650,7 +5602,7 @@
+       ],
+       "license": "MIT",
+       "dependencies": {
+-        "nanoid": "^3.3.12",
++        "nanoid": "^3.3.16",
+         "picocolors": "^1.1.1",
+         "source-map-js": "^1.2.1"
+       },
+@@ -5983,48 +5935,53 @@
+       }
+     },
+     "node_modules/sharp": {
+-      "version": "0.34.5",
+-      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.34.5.tgz",
+-      "integrity": "sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==",
+-      "hasInstallScript": true,
++      "version": "0.35.3",
++      "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.35.3.tgz",
++      "integrity": "sha512-ej0zVHuZGHCiABXcNxeYhpRnPNPAcvbG8RMdBAhDAxLKkCRVSpK3Iyu7qbqw3JMzoj0REeM6f3tJLtVwl0023Q==",
+       "license": "Apache-2.0",
+       "optional": true,
+       "dependencies": {
+-        "@img/colour": "^1.0.0",
++        "@img/colour": "^1.1.0",
+         "detect-libc": "^2.1.2",
+-        "semver": "^7.7.3"
++        "semver": "^7.8.5"
+       },
+       "engines": {
+-        "node": "^18.17.0 || ^20.3.0 || >=21.0.0"
++        "node": ">=20.9.0"
+       },
+       "funding": {
+         "url": "https://opencollective.com/libvips"
+       },
+       "optionalDependencies": {
+-        "@img/sharp-darwin-arm64": "0.34.5",
+-        "@img/sharp-darwin-x64": "0.34.5",
+-        "@img/sharp-libvips-darwin-arm64": "1.2.4",
+-        "@img/sharp-libvips-darwin-x64": "1.2.4",
+-        "@img/sharp-libvips-linux-arm": "1.2.4",
+-        "@img/sharp-libvips-linux-arm64": "1.2.4",
+-        "@img/sharp-libvips-linux-ppc64": "1.2.4",
+-        "@img/sharp-libvips-linux-riscv64": "1.2.4",
+-        "@img/sharp-libvips-linux-s390x": "1.2.4",
+-        "@img/sharp-libvips-linux-x64": "1.2.4",
+-        "@img/sharp-libvips-linuxmusl-arm64": "1.2.4",
+-        "@img/sharp-libvips-linuxmusl-x64": "1.2.4",
+-        "@img/sharp-linux-arm": "0.34.5",
+-        "@img/sharp-linux-arm64": "0.34.5",
+-        "@img/sharp-linux-ppc64": "0.34.5",
+-        "@img/sharp-linux-riscv64": "0.34.5",
+-        "@img/sharp-linux-s390x": "0.34.5",
+-        "@img/sharp-linux-x64": "0.34.5",
+-        "@img/sharp-linuxmusl-arm64": "0.34.5",
+-        "@img/sharp-linuxmusl-x64": "0.34.5",
+-        "@img/sharp-wasm32": "0.34.5",
+-        "@img/sharp-win32-arm64": "0.34.5",
+-        "@img/sharp-win32-ia32": "0.34.5",
+-        "@img/sharp-win32-x64": "0.34.5"
++        "@img/sharp-darwin-arm64": "0.35.3",
++        "@img/sharp-darwin-x64": "0.35.3",
++        "@img/sharp-freebsd-wasm32": "0.35.3",
++        "@img/sharp-libvips-darwin-arm64": "1.3.2",
++        "@img/sharp-libvips-darwin-x64": "1.3.2",
++        "@img/sharp-libvips-linux-arm": "1.3.2",
++        "@img/sharp-libvips-linux-arm64": "1.3.2",
++        "@img/sharp-libvips-linux-ppc64": "1.3.2",
++        "@img/sharp-libvips-linux-riscv64": "1.3.2",
++        "@img/sharp-libvips-linux-s390x": "1.3.2",
++        "@img/sharp-libvips-linux-x64": "1.3.2",
++        "@img/sharp-libvips-linuxmusl-arm64": "1.3.2",
++        "@img/sharp-libvips-linuxmusl-x64": "1.3.2",
++        "@img/sharp-linux-arm": "0.35.3",
++        "@img/sharp-linux-arm64": "0.35.3",
++        "@img/sharp-linux-ppc64": "0.35.3",
++        "@img/sharp-linux-riscv64": "0.35.3",
++        "@img/sharp-linux-s390x": "0.35.3",
++        "@img/sharp-linux-x64": "0.35.3",
++        "@img/sharp-linuxmusl-arm64": "0.35.3",
++        "@img/sharp-linuxmusl-x64": "0.35.3",
++        "@img/sharp-webcontainers-wasm32": "0.35.3",
++        "@img/sharp-win32-arm64": "0.35.3",
++        "@img/sharp-win32-ia32": "0.35.3",
++        "@img/sharp-win32-x64": "0.35.3"
++      },
++      "peerDependenciesMeta": {
++        "@types/node": {
++          "optional": true
++        }
+       }
+     },
+     "node_modules/sharp/node_modules/semver": {
+@@ -6306,23 +6263,6 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
+-    "node_modules/stripe": {
+-      "version": "22.3.0",
+-      "resolved": "https://registry.npmjs.org/stripe/-/stripe-22.3.0.tgz",
+-      "integrity": "sha512-ypO6xjVrMWs9SmIMeHr8naCx3dAQ0clxMdUTxn7Ejd7hmY9meBGfE+N4pVHkf9sUNebAHp6uJo6mV3GxDIc2cA==",
+-      "license": "MIT",
+-      "engines": {
+-        "node": ">=18"
+-      },
+-      "peerDependencies": {
+-        "@types/node": ">=18"
+-      },
+-      "peerDependenciesMeta": {
+-        "@types/node": {
+-          "optional": true
+-        }
+-      }
+-    },
+     "node_modules/styled-jsx": {
+       "version": "5.1.6",
+       "resolved": "https://registry.npmjs.org/styled-jsx/-/styled-jsx-5.1.6.tgz",
+@@ -6651,7 +6591,7 @@
+       "version": "6.21.0",
+       "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+       "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+-      "devOptional": true,
++      "dev": true,
+       "license": "MIT"
+     },
+     "node_modules/unrs-resolver": {
+diff --git a/package.json b/package.json
+index ea405af..c6b3183 100644
+--- a/package.json
++++ b/package.json
+@@ -9,14 +9,11 @@
+     "lint": "eslint"
+   },
+   "dependencies": {
+-    "@supabase/ssr": "^0.12.4",
+-    "@supabase/supabase-js": "^2.111.0",
+     "framer-motion": "^12.42.2",
+     "lucide-react": "^1.22.0",
+-    "next": "16.2.9",
++    "next": "16.3.1",
+     "react": "19.2.4",
+-    "react-dom": "19.2.4",
+-    "stripe": "^22.3.0"
++    "react-dom": "19.2.4"
+   },
+   "devDependencies": {
+     "@tailwindcss/postcss": "^4",
+@@ -24,7 +21,7 @@
+     "@types/react": "^19",
+     "@types/react-dom": "^19",
+     "eslint": "^9",
+-    "eslint-config-next": "16.2.9",
++    "eslint-config-next": "16.3.1",
+     "tailwindcss": "^4",
+     "typescript": "^5"
+   }
+diff --git a/supabase-orders.sql b/supabase-orders.sql
+deleted file mode 100644
+index 006c2e2..0000000
+--- a/supabase-orders.sql
++++ /dev/null
+@@ -1,51 +0,0 @@
+-create table if not exists public.orders (
+-  id text primary key,
+-  customer_name text,
+-  customer_surname text,
+-  customer_phone text,
+-  delivery_type text default 'pickup',
+-  region text,
+-  district text,
+-  city text,
+-  street text,
+-  warehouse text,
+-  notes text,
+-  total numeric(10,2) default 0,
+-  items jsonb default '[]'::jsonb,
+-  message text,
+-  status text default 'new',
+-  created_at timestamptz default now()
+-);
+-
+-alter table public.orders enable row level security;
+-
+-do $$
+-begin
+-  if not exists (
+-    select 1
+-    from pg_policies
+-    where schemaname = 'public'
+-      and tablename = 'orders'
+-      and policyname = 'Allow inserts for anonymous orders'
+-  ) then
+-    create policy "Allow inserts for anonymous orders"
+-      on public.orders
+-      for insert
+-      to anon
+-      with check (true);
+-  end if;
+-
+-  if not exists (
+-    select 1
+-    from pg_policies
+-    where schemaname = 'public'
+-      and tablename = 'orders'
+-      and policyname = 'Allow reads for authenticated admins'
+-  ) then
+-    create policy "Allow reads for authenticated admins"
+-      on public.orders
+-      for select
+-      to authenticated
+-      using (true);
+-  end if;
+-end $$;
+-- 
+2.51.1
+
