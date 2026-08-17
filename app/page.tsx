@@ -3,7 +3,7 @@
 import AgeGate from "./AgeGate";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin } from "lucide-react";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
 
 type Product = CatalogProduct;
@@ -588,7 +588,13 @@ export default function Home() {
           <div className="bg-gradient-to-br from-red-950 via-[#240b0b] to-black p-8 md:p-12">
             <p className="text-sm uppercase tracking-[0.25em] text-red-300">Зв’язатися з нами</p>
             <h2 className="mt-4 text-4xl font-black">Залишилися запитання?</h2>
-            <p className="mt-5 max-w-md leading-7 text-white/65">Напишіть нам про смак, наявність або отримання. Повідомлення одразу надійде в наш Telegram-чат, і ми зв’яжемося з вами.</p>
+            <p className="mt-5 max-w-md leading-7 text-white/65">Заповніть контактну форму або зателефонуйте нам — допоможемо зі смаком, наявністю та отриманням.</p>
+            <a href="tel:+380679110368" className="mt-6 flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-lg font-black transition hover:border-red-400/50 hover:bg-white/15">
+              <Phone className="text-red-300" size={22} /> +380 (67) 911 03 68
+            </a>
+            <a href="https://maps.app.goo.gl/rJbxy4c5CobvhEcG9?g_st=ic" target="_blank" rel="noopener noreferrer" className="mt-3 flex w-fit items-center gap-2 text-sm font-bold text-red-300 hover:text-red-200">
+              <MapPin size={18} /> Ми на Google Maps <ArrowRight size={16} />
+            </a>
             <div className="mt-8 space-y-4 text-sm text-white/70">
               <p className="flex items-center gap-3"><MessageCircle className="text-red-300" size={20} /> Відповідь у зручному форматі</p>
               <p className="flex items-center gap-3"><ShieldCheck className="text-red-300" size={20} /> Дані використовуються лише для відповіді</p>
