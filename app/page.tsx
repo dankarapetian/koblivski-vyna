@@ -3,8 +3,8 @@
 import AgeGate from "./AgeGate";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin } from "lucide-react";
-import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
+import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin, Search } from "lucide-react";
+import { catalogProducts, getCatalogProductById, type CatalogProduct } from "@/lib/catalog";
 
 type Product = CatalogProduct;
 
@@ -61,32 +61,45 @@ const categories = [
   },
 ];
 
-const styledWineBottleIds = new Set([
-  "koblevo-bakkara-bottle",
-  "koblevo-kagor-ukrainskyi-bottle",
-  "koblevo-kleopatra-bottle",
-  "koblevo-muscat-gold-bottle",
-  "koblevo-muscat-rose-bottle",
-]);
+const categoryTints: Record<string, string> = {
+  weisswein: "rgba(210, 166, 72, 0.24)",
+  rotwein: "rgba(145, 15, 48, 0.42)",
+  rose: "rgba(214, 66, 116, 0.32)",
+  schaumwein: "rgba(72, 78, 170, 0.34)",
+  spirituosen: "rgba(126, 61, 18, 0.34)",
+  brandy: "rgba(173, 88, 25, 0.38)",
+  vermouth: "rgba(9, 116, 103, 0.34)",
+};
 
-function productImageBackdrop(product: Product) {
-  if (product.categoryId === "brandy") {
-    return "bg-[radial-gradient(circle_at_50%_18%,#d99a45_0%,#6b3014_42%,#170b08_100%)]";
+function productStageStyle(product: Product) {
+  const tint = categoryTints[product.categoryId] ?? "rgba(85, 20, 30, 0.28)";
+  return {
+    backgroundImage: `linear-gradient(${tint}, ${tint}), url('/images/catalog/stage.webp')`,
+    backgroundPosition: "center",
+    backgroundSize: "cover",
+  };
+}
+
+function productForegroundImage(product: Product) {
+  if (product.id.startsWith("bile-vyno-")) return "/images/catalog/draft-white.webp";
+  if (product.id.startsWith("krasne-vino-")) return "/images/catalog/draft-red.webp";
+  if (product.id.startsWith("roze-vino-")) return "/images/catalog/draft-rose.webp";
+  return product.image.trim();
+}
+
+function productForegroundStyle(product: Product) {
+  return {
+    backgroundImage: `url('${productForegroundImage(product)}')`,
+    backgroundPosition: "center 78%",
+    backgroundSize: "auto 82%",
+  };
+}
+
+function productCategoryLabel(product: Product) {
+  if (/^(bile|krasne|roze)-vyno-/.test(product.id)) {
+    return `${product.category.replace(/ · розливне$/, "")} · розливне · ціна за 1 л`;
   }
-
-  if (product.categoryId === "schaumwein" && product.id.startsWith("marengo-")) {
-    return "bg-[radial-gradient(circle_at_50%_18%,#e5c7ff_0%,#3730a3_42%,#101525_100%)]";
-  }
-
-  if (product.categoryId === "vermouth") {
-    return "bg-[radial-gradient(circle_at_50%_18%,#f2d37c_0%,#0f766e_42%,#101525_100%)]";
-  }
-
-  if (styledWineBottleIds.has(product.id)) {
-    return "bg-[radial-gradient(circle_at_50%_18%,#f4d58a_0%,#76263c_42%,#19080d_100%)]";
-  }
-
-  return "bg-white";
+  return product.category;
 }
 
 function formatPrice(cents: number) {
@@ -98,6 +111,8 @@ export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeCategory, setActiveCategory] = useState("weisswein");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVariantIds, setSelectedVariantIds] = useState<Record<string, string>>({});
   const [deliveryType, setDeliveryType] = useState<"nova-poshta" | "pickup">("nova-poshta");
   const [customerName, setCustomerName] = useState("");
   const [customerSurname, setCustomerSurname] = useState("");
@@ -129,10 +144,17 @@ export default function Home() {
   
 
   const visibleProducts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase("uk-UA");
     return products
-      .filter((product) => product.categoryId === activeCategory)
+      .filter((product) => {
+        if (!normalizedQuery) return product.categoryId === activeCategory;
+        return [product.name, product.category, product.sort, product.description]
+          .join(" ")
+          .toLocaleLowerCase("uk-UA")
+          .includes(normalizedQuery);
+      })
       .sort((first, second) => first.price - second.price);
-  }, [activeCategory]);
+  }, [activeCategory, searchQuery]);
 
   const total = useMemo(() => {
     return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -141,6 +163,17 @@ export default function Home() {
   const itemCount = useMemo(() => {
     return cart.reduce((sum, item) => sum + item.qty, 0);
   }, [cart]);
+
+  function getProductSelection(product: Product) {
+    const variantId = selectedVariantIds[product.id] ?? product.variants?.[0]?.id;
+    return variantId ? getCatalogProductById(variantId) ?? product : product;
+  }
+
+  function changeProductVariant(productId: string, variantId: string) {
+    setSelectedVariantIds((current) => ({ ...current, [productId]: variantId }));
+  }
+
+  const selectedProductOption = selectedProduct ? getProductSelection(selectedProduct) : null;
 
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -464,16 +497,16 @@ export default function Home() {
               transition={{ delay: index * 0.06 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.07] shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className={`relative block h-64 w-full overflow-hidden ${productImageBackdrop(product)}`} aria-label={`Детальніше про ${product.name}`}>
+              <button onClick={() => openProduct(product)} className="relative block h-64 w-full overflow-hidden" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
                 <span className="absolute left-4 top-4 z-10 rounded-full bg-red-700 px-3 py-1 text-xs font-bold">Популярне</span>
-                <span className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${product.image}')` }} />
+                <span className="absolute inset-0 bg-no-repeat transition duration-500 group-hover:scale-105" style={productForegroundStyle(product)} />
               </button>
               <div className="p-5">
-                <p className="text-xs text-red-200">{product.category} · {product.sort}</p>
+                <p className="text-xs text-red-200">{productCategoryLabel(product)} · {product.sort}</p>
                 <h3 className="mt-2 text-xl font-bold">{product.name}</h3>
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <span className="text-xl font-black">{formatPrice(product.price)}</span>
-                  <button onClick={() => addToCart(product)} className="rounded-full bg-red-700 p-3 hover:bg-red-800" aria-label={`Додати ${product.name} до кошика`}><Plus size={18} /></button>
+                  <button onClick={() => addToCart(getProductSelection(product))} className="rounded-full bg-red-700 p-3 hover:bg-red-800" aria-label={`Додати ${product.name} до кошика`}><Plus size={18} /></button>
                 </div>
               </div>
             </motion.article>
@@ -522,11 +555,30 @@ export default function Home() {
           </p>
         </div>
 
+        <div className="mx-auto mb-8 max-w-2xl">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-white/45" size={21} />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Пошук за назвою або смаком…"
+              className="w-full rounded-2xl border border-white/15 bg-white/10 py-4 pl-14 pr-12 outline-none placeholder:text-white/35 focus:border-red-400"
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white" aria-label="Очистити пошук">
+                <X size={18} />
+              </button>
+            )}
+          </label>
+          {searchQuery && <p className="mt-3 text-center text-sm text-white/50">Знайдено позицій: {visibleProducts.length}</p>}
+        </div>
+
         <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {categories.map((category) => (
             <button
               key={category.id}
-              onClick={() => setActiveCategory(category.id)}
+              onClick={() => { setActiveCategory(category.id); setSearchQuery(""); }}
               className={`group flex flex-col items-center justify-center gap-3 rounded-3xl border p-6 text-center transition ${
                 activeCategory === category.id
                   ? "border-red-500 bg-red-700 text-white"
@@ -542,7 +594,9 @@ export default function Home() {
         </div>
 
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visibleProducts.map((product) => (
+          {visibleProducts.map((product) => {
+            const productSelection = getProductSelection(product);
+            return (
             <motion.div
               key={product.id}
               initial={{ opacity: 0, y: 22 }}
@@ -552,10 +606,10 @@ export default function Home() {
               transition={{ type: "spring", stiffness: 220 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className={`relative block h-52 w-full overflow-hidden ${productImageBackdrop(product)}`} aria-label={`Детальніше про ${product.name}`}>
+              <button onClick={() => openProduct(product)} className="relative block h-52 w-full overflow-hidden" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
               <span
-                className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105"
-                style={{ backgroundImage: `url('${product.image}')` }}
+                className="absolute inset-0 bg-no-repeat transition duration-500 group-hover:scale-105"
+                style={productForegroundStyle(product)}
               />
               <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-bold opacity-0 backdrop-blur transition group-hover:opacity-100"><Eye size={14} /> Детальніше</span>
               </button>
@@ -563,7 +617,7 @@ export default function Home() {
               <div className="p-5">
                 <div className="mb-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-black/40 px-3 py-1 text-xs text-white/70">
-                    {product.category}
+                    {productCategoryLabel(product)}
                   </span>
                   <span className="rounded-full bg-red-900/60 px-3 py-1 text-xs text-red-100">
                     {product.sort}
@@ -576,13 +630,28 @@ export default function Home() {
                   {product.description}
                 </p>
 
+                {product.variants && product.variants.length > 1 && (
+                  <label className="mt-4 block text-sm font-semibold text-white/75">
+                    Оберіть об’єм
+                    <select
+                      value={selectedVariantIds[product.id] ?? product.variants[0].id}
+                      onChange={(event) => changeProductVariant(product.id, event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-[#241010] px-4 py-3 text-white outline-none focus:border-red-400"
+                    >
+                      {product.variants.map((variant) => (
+                        <option key={variant.id} value={variant.id}>{variant.label} — {formatPrice(variant.price)}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
                 <button onClick={() => openProduct(product)} className="mt-3 text-sm font-semibold text-red-300 hover:text-red-200">Смак і деталі →</button>
 
                 <div className="mt-5 flex items-center justify-between gap-3">
-                  <span className="text-xl font-black">{formatPrice(product.price)}</span>
+                  <span className="text-xl font-black">{formatPrice(productSelection.price)}</span>
 
                   <button
-                    onClick={() => addToCart(product)}
+                    onClick={() => addToCart(productSelection)}
                     className="flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 font-bold hover:bg-red-800"
                   >
                     <Plus size={16} />
@@ -591,8 +660,13 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
-          ))}
+          );})}
         </div>
+        {visibleProducts.length === 0 && (
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-white/60">
+            Нічого не знайдено. Спробуйте іншу назву або очистіть пошук.
+          </div>
+        )}
       </section>
 
       <section id="yak-zamovyty" className="mx-auto max-w-7xl px-6 py-20">
@@ -694,17 +768,33 @@ export default function Home() {
       )}
 
       <AnimatePresence>
-        {selectedProduct && (
+        {selectedProduct && selectedProductOption && (
           <>
             <motion.button aria-label="Закрити деталі товару" className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} />
             <motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }} className="fixed left-1/2 top-1/2 z-[71] grid max-h-[88vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[2rem] border border-white/10 bg-[#160909] shadow-2xl md:grid-cols-2">
-              <div className={`min-h-72 bg-contain bg-center bg-no-repeat ${productImageBackdrop(selectedProduct)}`} style={{ backgroundImage: `url('${selectedProduct.image}')` }} />
+              <div className="relative min-h-72 overflow-hidden" style={productStageStyle(selectedProduct)}>
+                <span className="absolute inset-0 bg-no-repeat" style={productForegroundStyle(selectedProduct)} />
+              </div>
               <div className="relative p-7 md:p-9">
                 <button onClick={() => setSelectedProduct(null)} className="absolute right-5 top-5 rounded-full bg-white/10 p-2 hover:bg-white/20" aria-label="Закрити"><X size={20} /></button>
-                <p className="pr-10 text-sm text-red-300">{selectedProduct.category} · {selectedProduct.sort}</p>
+                <p className="pr-10 text-sm text-red-300">{productCategoryLabel(selectedProduct)} · {selectedProduct.sort}</p>
                 <h2 className="mt-3 text-3xl font-black">{selectedProduct.name}</h2>
                 <p className="mt-5 leading-7 text-white/70">{selectedProduct.description}</p>
-                <div className="mt-8 flex items-center justify-between gap-4"><span className="text-2xl font-black">{formatPrice(selectedProduct.price)}</span><button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 font-bold hover:bg-red-800"><Plus size={17} /> Додати</button></div>
+                {selectedProduct.variants && selectedProduct.variants.length > 1 && (
+                  <label className="mt-6 block text-sm font-semibold text-white/75">
+                    Оберіть об’єм
+                    <select
+                      value={selectedVariantIds[selectedProduct.id] ?? selectedProduct.variants[0].id}
+                      onChange={(event) => changeProductVariant(selectedProduct.id, event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-[#241010] px-4 py-3 text-white outline-none focus:border-red-400"
+                    >
+                      {selectedProduct.variants.map((variant) => (
+                        <option key={variant.id} value={variant.id}>{variant.label} — {formatPrice(variant.price)}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <div className="mt-8 flex items-center justify-between gap-4"><span className="text-2xl font-black">{formatPrice(selectedProductOption.price)}</span><button onClick={() => { addToCart(selectedProductOption); setSelectedProduct(null); }} className="flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 font-bold hover:bg-red-800"><Plus size={17} /> Додати</button></div>
                 <p className="mt-5 text-xs leading-5 text-white/40">Наявність та деталі отримання уточнюються під час підтвердження замовлення.</p>
               </div>
             </motion.div>
@@ -751,9 +841,11 @@ export default function Home() {
                   {cart.map((item) => (
                     <div key={item.id} className="flex gap-4 rounded-3xl bg-white/10 p-4">
                       <div
-                        className={`h-24 w-24 shrink-0 rounded-2xl bg-contain bg-center bg-no-repeat ${productImageBackdrop(item)}`}
-                        style={{ backgroundImage: `url('${item.image}')` }}
-                      />
+                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl"
+                        style={productStageStyle(item)}
+                      >
+                        <span className="absolute inset-0 bg-no-repeat" style={productForegroundStyle(item)} />
+                      </div>
 
                       <div className="flex-1">
                         <h3 className="font-bold">{item.name}</h3>
@@ -761,7 +853,7 @@ export default function Home() {
                         <p className="text-sm text-white/50">{formatPrice(item.price)}</p>
 
                         <p className="text-xs text-white/40">
-                          {item.category} · {item.sort}
+                          {productCategoryLabel(item)} · {item.sort}
                         </p>
 
                         <div className="mt-3 flex items-center gap-2">
