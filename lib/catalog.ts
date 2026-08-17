@@ -89,7 +89,7 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     id: "bile-vyno-shato-royal",
-    name: "Шато де Рояль",
+    name: "Шато Рояль",
     category: "Білі вина",
     categoryId: "weisswein",
     sort: "Напівсолодке",
