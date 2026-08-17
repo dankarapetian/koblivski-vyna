@@ -103,6 +103,10 @@ function productCategoryLabel(product: Product) {
   return product.category;
 }
 
+function isDraftProduct(product: Product) {
+  return product.category.includes("розливне") || /^(bile|krasne|roze)-vyno-/.test(product.id);
+}
+
 function formatPrice(cents: number) {
   return `${(cents / 100).toFixed(2).replace(".", ",")} грн`;
 }
@@ -154,7 +158,10 @@ export default function Home() {
           .toLocaleLowerCase("uk-UA")
           .includes(normalizedQuery);
       })
-      .sort((first, second) => first.price - second.price);
+      .sort((first, second) => {
+        const draftOrder = Number(isDraftProduct(second)) - Number(isDraftProduct(first));
+        return draftOrder || first.price - second.price;
+      });
   }, [activeCategory, searchQuery]);
 
   const total = useMemo(() => {
