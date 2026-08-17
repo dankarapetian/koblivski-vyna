@@ -50,11 +50,44 @@ const categories = [
     name: "Спиртні напої",
   },
   {
+    id: "brandy",
+    icon: "🏺",
+    name: "Коньяки та бренді",
+  },
+  {
     id: "vermouth",
     icon: "🍸",
     name: "Вермути та коктейлі",
   },
 ];
+
+const styledWineBottleIds = new Set([
+  "koblevo-bakkara-bottle",
+  "koblevo-kagor-ukrainskyi-bottle",
+  "koblevo-kleopatra-bottle",
+  "koblevo-muscat-gold-bottle",
+  "koblevo-muscat-rose-bottle",
+]);
+
+function productImageBackdrop(product: Product) {
+  if (product.categoryId === "brandy") {
+    return "bg-[radial-gradient(circle_at_50%_18%,#d99a45_0%,#6b3014_42%,#170b08_100%)]";
+  }
+
+  if (product.categoryId === "schaumwein" && product.id.startsWith("marengo-")) {
+    return "bg-[radial-gradient(circle_at_50%_18%,#e5c7ff_0%,#3730a3_42%,#101525_100%)]";
+  }
+
+  if (product.categoryId === "vermouth") {
+    return "bg-[radial-gradient(circle_at_50%_18%,#f2d37c_0%,#0f766e_42%,#101525_100%)]";
+  }
+
+  if (styledWineBottleIds.has(product.id)) {
+    return "bg-[radial-gradient(circle_at_50%_18%,#f4d58a_0%,#76263c_42%,#19080d_100%)]";
+  }
+
+  return "bg-white";
+}
 
 function formatPrice(cents: number) {
   return `${(cents / 100).toFixed(2).replace(".", ",")} грн`;
@@ -431,7 +464,7 @@ export default function Home() {
               transition={{ delay: index * 0.06 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.07] shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className="relative block h-64 w-full overflow-hidden bg-white" aria-label={`Детальніше про ${product.name}`}>
+              <button onClick={() => openProduct(product)} className={`relative block h-64 w-full overflow-hidden ${productImageBackdrop(product)}`} aria-label={`Детальніше про ${product.name}`}>
                 <span className="absolute left-4 top-4 z-10 rounded-full bg-red-700 px-3 py-1 text-xs font-bold">Популярне</span>
                 <span className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${product.image}')` }} />
               </button>
@@ -489,7 +522,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {categories.map((category) => (
             <button
               key={category.id}
@@ -519,7 +552,7 @@ export default function Home() {
               transition={{ type: "spring", stiffness: 220 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className="relative block h-52 w-full overflow-hidden bg-white" aria-label={`Детальніше про ${product.name}`}>
+              <button onClick={() => openProduct(product)} className={`relative block h-52 w-full overflow-hidden ${productImageBackdrop(product)}`} aria-label={`Детальніше про ${product.name}`}>
               <span
                 className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105"
                 style={{ backgroundImage: `url('${product.image}')` }}
@@ -665,7 +698,7 @@ export default function Home() {
           <>
             <motion.button aria-label="Закрити деталі товару" className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} />
             <motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }} className="fixed left-1/2 top-1/2 z-[71] grid max-h-[88vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[2rem] border border-white/10 bg-[#160909] shadow-2xl md:grid-cols-2">
-              <div className="min-h-72 bg-white bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url('${selectedProduct.image}')` }} />
+              <div className={`min-h-72 bg-contain bg-center bg-no-repeat ${productImageBackdrop(selectedProduct)}`} style={{ backgroundImage: `url('${selectedProduct.image}')` }} />
               <div className="relative p-7 md:p-9">
                 <button onClick={() => setSelectedProduct(null)} className="absolute right-5 top-5 rounded-full bg-white/10 p-2 hover:bg-white/20" aria-label="Закрити"><X size={20} /></button>
                 <p className="pr-10 text-sm text-red-300">{selectedProduct.category} · {selectedProduct.sort}</p>
@@ -718,7 +751,7 @@ export default function Home() {
                   {cart.map((item) => (
                     <div key={item.id} className="flex gap-4 rounded-3xl bg-white/10 p-4">
                       <div
-                        className="h-24 w-24 shrink-0 rounded-2xl bg-cover bg-center"
+                        className={`h-24 w-24 shrink-0 rounded-2xl bg-contain bg-center bg-no-repeat ${productImageBackdrop(item)}`}
                         style={{ backgroundImage: `url('${item.image}')` }}
                       />
 
