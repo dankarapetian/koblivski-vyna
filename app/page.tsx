@@ -49,6 +49,11 @@ const categories = [
     icon: "🥃",
     name: "Спиртні напої",
   },
+  {
+    id: "vermouth",
+    icon: "🍸",
+    name: "Вермути та коктейлі",
+  },
 ];
 
 function formatPrice(cents: number) {
@@ -91,7 +96,9 @@ export default function Home() {
   
 
   const visibleProducts = useMemo(() => {
-    return products.filter((product) => product.categoryId === activeCategory);
+    return products
+      .filter((product) => product.categoryId === activeCategory)
+      .sort((first, second) => first.price - second.price);
   }, [activeCategory]);
 
   const total = useMemo(() => {
@@ -482,7 +489,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {categories.map((category) => (
             <button
               key={category.id}
