@@ -429,12 +429,12 @@ export default function Home() {
       </header>
 
       <section
-        className="relative flex min-h-screen items-center bg-cover bg-center pt-24"
+        className="relative flex min-h-[82svh] items-center bg-cover bg-center pt-24 md:min-h-screen"
         style={{ backgroundImage: "url('/images/hero-wine.jpg')" }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/30" />
 
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-6 py-24 md:grid-cols-2">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 md:grid-cols-2 md:px-6 md:py-24">
           <motion.div
             initial={{ opacity: 0, y: 35 }}
             animate={{ opacity: 1, y: 0 }}
@@ -444,7 +444,7 @@ export default function Home() {
               <Sparkles size={16} /> Добірний винний асортимент
             </p>
 
-            <h1 className="max-w-3xl text-5xl font-black leading-tight md:text-8xl">
+            <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-5xl md:text-8xl">
               Коблевські Вина
             </h1>
 
@@ -491,11 +491,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="populyarni" className="mx-auto max-w-7xl px-6 py-20">
+      <section id="populyarni" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-red-300">Рекомендуємо почати звідси</p>
-            <h2 className="mt-3 text-4xl font-black md:text-5xl">Популярні напої</h2>
+            <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">Популярні напої</h2>
             <p className="mt-4 max-w-2xl text-white/60">Добірка різних смаків для вечері, подарунка або особливого вечора.</p>
           </div>
           <button onClick={() => scrollToSection("produkty")} className="flex items-center gap-2 font-bold text-red-300 hover:text-red-200">
@@ -503,7 +503,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
           {popularProducts.map((product, index) => (
             <motion.article
               key={product.id}
@@ -513,15 +513,15 @@ export default function Home() {
               transition={{ delay: index * 0.06 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.07] shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className="relative block h-64 w-full overflow-hidden" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
-                <span className="absolute left-4 top-4 z-10 rounded-full bg-red-700 px-3 py-1 text-xs font-bold">Популярне</span>
+              <button onClick={() => openProduct(product)} className="relative block h-36 w-full overflow-hidden sm:h-64" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
+                <span className="absolute left-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[10px] font-bold sm:left-4 sm:top-4 sm:px-3 sm:text-xs">Популярне</span>
                 <span className="absolute inset-0 bg-no-repeat transition duration-500 group-hover:scale-105" style={productForegroundStyle(product)} />
               </button>
-              <div className="p-5">
-                <p className="text-xs text-red-200">{productCategoryLabel(product)} · {product.sort}</p>
-                <h3 className="mt-2 text-xl font-bold">{product.name}</h3>
-                <div className="mt-5 flex items-center justify-between gap-3">
-                  <span className="text-xl font-black">{formatPrice(product.price)}</span>
+              <div className="p-3 sm:p-5">
+                <p className="line-clamp-2 text-[10px] leading-4 text-red-200 sm:text-xs">{productCategoryLabel(product)} · {product.sort}</p>
+                <h3 className="mt-1 line-clamp-2 text-base font-bold leading-tight sm:mt-2 sm:text-xl">{product.name}</h3>
+                <div className="mt-3 flex items-center justify-between gap-2 sm:mt-5 sm:gap-3">
+                  <span className="text-base font-black sm:text-xl">{formatPrice(product.price)}</span>
                   <button onClick={() => addToCart(getProductSelection(product))} className="rounded-full bg-red-700 p-3 hover:bg-red-800" aria-label={`Додати ${product.name} до кошика`}><Plus size={18} /></button>
                 </div>
               </div>
@@ -530,42 +530,42 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="perevagy" className="mx-auto grid max-w-7xl gap-5 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
-        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
+      <section id="perevagy" className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-12 sm:gap-5 sm:px-6 sm:py-16 lg:grid-cols-4">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6">
           <ShieldCheck className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Допомога з вибором</h3>
-          <p className="mt-2 text-sm leading-6 text-white/60">
+          <h3 className="text-base font-bold sm:text-xl">Допомога з вибором</h3>
+          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">
             Ми допомагаємо обрати вино під ваші уподобання, свято або вечір.
           </p>
         </motion.div>
 
-        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6">
           <Truck className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Доставка по Україні</h3>
-          <p className="mt-2 text-sm leading-6 text-white/60">
+          <h3 className="text-base font-bold sm:text-xl">Доставка по Україні</h3>
+          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">
             Оберіть Нову Пошту або погодьте самовивіз під час підтвердження.
           </p>
         </motion.div>
 
-        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6">
           <MessageCircle className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Без реєстрації</h3>
-          <p className="mt-2 text-sm leading-6 text-white/60">
+          <h3 className="text-base font-bold sm:text-xl">Без реєстрації</h3>
+          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">
             Замовлення одразу надходить нам, після чого ми зв’язуємося для підтвердження.
           </p>
         </motion.div>
 
-        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-6">
           <Clock3 className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Швидкий зв’язок</h3>
-          <p className="mt-2 text-sm leading-6 text-white/60">Уточнимо наявність, деталі отримання та відповімо на запитання.</p>
+          <h3 className="text-base font-bold sm:text-xl">Швидкий зв’язок</h3>
+          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">Уточнимо наявність, деталі отримання та відповімо на запитання.</p>
         </motion.div>
       </section>
 
-      <section id="produkty" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mb-12 text-center">
+      <section id="produkty" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mb-8 text-center sm:mb-12">
           <p className="text-sm uppercase tracking-widest text-red-300">Магазин</p>
-          <h2 className="mt-3 text-4xl font-black md:text-5xl">Наші категорії</h2>
+          <h2 className="mt-3 text-3xl font-black sm:text-4xl md:text-5xl">Наші категорії</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/60">
             Оберіть категорію й дізнайтеся про доступні позиції.
           </p>
@@ -590,18 +590,18 @@ export default function Home() {
           {searchQuery && <p className="mt-3 text-center text-sm text-white/50">Знайдено позицій: {visibleProducts.length}</p>}
         </div>
 
-        <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="mb-8 flex snap-x gap-2 overflow-x-auto pb-3 sm:mb-10 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:pb-0 lg:grid-cols-4 xl:grid-cols-7">
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => { setActiveCategory(category.id); setSearchQuery(""); }}
-              className={`group flex flex-col items-center justify-center gap-3 rounded-3xl border p-6 text-center transition ${
+              className={`group flex min-w-[142px] snap-start items-center justify-center gap-2 rounded-2xl border p-3 text-center transition sm:min-w-0 sm:flex-col sm:gap-3 sm:rounded-3xl sm:p-6 ${
                 activeCategory === category.id
                   ? "border-red-500 bg-red-700 text-white"
                   : "border-white/10 bg-white/10 text-white/70 hover:border-red-500 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-2xl">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-lg sm:h-16 sm:w-16 sm:rounded-2xl sm:text-2xl">
                 {category.icon}
               </div>
               <span className="text-sm font-bold">{category.name}</span>
@@ -609,7 +609,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-8 lg:grid-cols-3 xl:grid-cols-4">
           {visibleProducts.map((product) => {
             const productSelection = getProductSelection(product);
             return (
@@ -622,7 +622,7 @@ export default function Home() {
               transition={{ type: "spring", stiffness: 220 }}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
             >
-              <button onClick={() => openProduct(product)} className="relative block h-52 w-full overflow-hidden" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
+              <button onClick={() => openProduct(product)} className="relative block h-36 w-full overflow-hidden sm:h-52" style={productStageStyle(product)} aria-label={`Детальніше про ${product.name}`}>
               <span
                 className="absolute inset-0 bg-no-repeat transition duration-500 group-hover:scale-105"
                 style={productForegroundStyle(product)}
@@ -630,8 +630,8 @@ export default function Home() {
               <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-bold opacity-0 backdrop-blur transition group-hover:opacity-100"><Eye size={14} /> Детальніше</span>
               </button>
 
-              <div className="p-5">
-                <div className="mb-3 flex flex-wrap gap-2">
+              <div className="p-3 sm:p-5">
+                <div className="mb-2 hidden flex-wrap gap-2 sm:mb-3 sm:flex">
                   <span className="rounded-full bg-black/40 px-3 py-1 text-xs text-white/70">
                     {productCategoryLabel(product)}
                   </span>
@@ -640,19 +640,23 @@ export default function Home() {
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold">{product.name}</h3>
+                <p className="mb-1 line-clamp-2 text-[10px] leading-4 text-red-200 sm:hidden">
+                  {productCategoryLabel(product)} · {product.sort}
+                </p>
 
-                <p className="mt-2 min-h-16 text-sm leading-6 text-white/60">
+                <h3 className="line-clamp-2 text-base font-bold leading-tight sm:text-2xl">{product.name}</h3>
+
+                <p className="mt-2 hidden min-h-16 text-sm leading-6 text-white/60 sm:block">
                   {product.description}
                 </p>
 
                 {product.variants && product.variants.length > 1 && (
-                  <label className="mt-4 block text-sm font-semibold text-white/75">
+                  <label className="mt-3 block text-xs font-semibold text-white/75 sm:mt-4 sm:text-sm">
                     Оберіть об’єм
                     <select
                       value={selectedVariantIds[product.id] ?? product.variants[0].id}
                       onChange={(event) => changeProductVariant(product.id, event.target.value)}
-                      className="mt-2 w-full rounded-xl border border-white/15 bg-[#241010] px-4 py-3 text-white outline-none focus:border-red-400"
+                      className="mt-1 w-full rounded-xl border border-white/15 bg-[#241010] px-2 py-2 text-xs text-white outline-none focus:border-red-400 sm:mt-2 sm:px-4 sm:py-3 sm:text-base"
                     >
                       {product.variants.map((variant) => (
                         <option key={variant.id} value={variant.id}>{variant.label} — {formatPrice(variant.price)}</option>
@@ -661,17 +665,20 @@ export default function Home() {
                   </label>
                 )}
 
-                <button onClick={() => openProduct(product)} className="mt-3 text-sm font-semibold text-red-300 hover:text-red-200">Смак і деталі →</button>
+                <button onClick={() => openProduct(product)} className="mt-2 text-xs font-semibold text-red-300 hover:text-red-200 sm:mt-3 sm:text-sm">
+                  <span className="sm:hidden">Деталі →</span>
+                  <span className="hidden sm:inline">Смак і деталі →</span>
+                </button>
 
-                <div className="mt-5 flex items-center justify-between gap-3">
-                  <span className="text-xl font-black">{formatPrice(productSelection.price)}</span>
+                <div className="mt-3 flex items-center justify-between gap-2 sm:mt-5 sm:gap-3">
+                  <span className="text-base font-black sm:text-xl">{formatPrice(productSelection.price)}</span>
 
                   <button
                     onClick={() => addToCart(productSelection)}
-                    className="flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 font-bold hover:bg-red-800"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-700 font-bold hover:bg-red-800 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3"
                   >
                     <Plus size={16} />
-                    Додати
+                    <span className="hidden sm:inline">Додати</span>
                   </button>
                 </div>
               </div>
