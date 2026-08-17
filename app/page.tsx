@@ -592,9 +592,6 @@ export default function Home() {
             <a href="tel:+380679110368" className="mt-6 flex w-fit items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-lg font-black transition hover:border-red-400/50 hover:bg-white/15">
               <Phone className="text-red-300" size={22} /> +380 (67) 911 03 68
             </a>
-            <a href="https://maps.app.goo.gl/rJbxy4c5CobvhEcG9?g_st=ic" target="_blank" rel="noopener noreferrer" className="mt-3 flex w-fit items-center gap-2 text-sm font-bold text-red-300 hover:text-red-200">
-              <MapPin size={18} /> Ми на Google Maps <ArrowRight size={16} />
-            </a>
             <div className="mt-8 space-y-4 text-sm text-white/70">
               <p className="flex items-center gap-3"><MessageCircle className="text-red-300" size={20} /> Відповідь у зручному форматі</p>
               <p className="flex items-center gap-3"><ShieldCheck className="text-red-300" size={20} /> Дані використовуються лише для відповіді</p>
@@ -614,6 +611,22 @@ export default function Home() {
             <button disabled={contactSubmitting} type="submit" className="flex w-full items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 font-bold hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"><MessageCircle size={19} />{contactSubmitting ? "Надсилаємо…" : "Надіслати повідомлення"}</button>
             <p className="text-xs leading-5 text-white/40">Натискаючи кнопку, ви погоджуєтеся на використання введених даних для відповіді на звернення.</p>
           </form>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-20">
+        <div className="flex flex-col items-center justify-between gap-7 rounded-[2rem] border border-white/10 bg-gradient-to-r from-[#1f0b0b] via-red-950/60 to-[#1f0b0b] p-8 text-center md:flex-row md:p-10 md:text-left">
+          <div className="flex flex-col items-center gap-5 md:flex-row">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10 text-red-300"><MapPin size={30} /></span>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.22em] text-red-300">Ми на Google Maps</p>
+              <h2 className="mt-2 text-2xl font-black md:text-3xl">Вже завітали до нас?</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Поділіться враженнями — ваш відгук допомагає нам ставати кращими та допомагає іншим покупцям зробити вибір.</p>
+            </div>
+          </div>
+          <a href="https://maps.app.goo.gl/rJbxy4c5CobvhEcG9?g_st=ic" target="_blank" rel="noopener noreferrer" className="flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-4 font-bold text-black transition hover:bg-red-100">
+            Залишити відгук у Google <ArrowRight size={18} />
+          </a>
         </div>
       </section>
 
