@@ -3,7 +3,7 @@
 import AgeGate from "./AgeGate";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye } from "lucide-react";
 import { catalogProducts, type CatalogProduct } from "@/lib/catalog";
 
 type Product = CatalogProduct;
@@ -13,6 +13,15 @@ type CartItem = Product & {
 };
 
 const products: Product[] = catalogProducts;
+const popularProductIds = [
+  "krasne-vino-alzanska-dolina",
+  "bile-vyno-shato-de-win",
+  "krasne-vino-izabella",
+  "roze-vino-chornomorska-perlyna",
+];
+const popularProducts = popularProductIds
+  .map((id) => products.find((product) => product.id === id))
+  .filter((product): product is Product => Boolean(product));
 
 const categories = [
   {
@@ -65,6 +74,8 @@ export default function Home() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [addedProductName, setAddedProductName] = useState("");
   const formStartedAt = useRef(0);
 
   useEffect(() => {
@@ -102,7 +113,12 @@ export default function Home() {
       return [...oldCart, { ...product, qty: 1 }];
     });
 
-    setCartOpen(true);
+    setAddedProductName(product.name);
+    window.setTimeout(() => setAddedProductName(""), 2200);
+  }
+
+  function openProduct(product: Product) {
+    setSelectedProduct(product);
   }
 
   function increaseQty(id: string) {
@@ -281,8 +297,8 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <p className="mb-5 inline-block rounded-full border border-red-400/30 bg-red-900/40 px-4 py-2 text-sm text-red-100">
-              Premium винний асортимент
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-red-900/40 px-4 py-2 text-sm text-red-100">
+              <Sparkles size={16} /> Добірний винний асортимент
             </p>
 
             <h1 className="max-w-3xl text-5xl font-black leading-tight md:text-8xl">
@@ -290,7 +306,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-xl text-lg text-white/75 md:text-xl">
-              Оберіть улюблені напої, додайте їх до кошика і замовте без зайвих кроків.
+              Оберіть улюблений напій та оформіть замовлення з доставкою по Україні без реєстрації.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -302,11 +318,17 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => setCartOpen(true)}
+                onClick={() => scrollToSection("populyarni")}
                 className="rounded-full border border-white/20 bg-white/10 px-8 py-4 font-bold hover:bg-white/20"
               >
-                Відкрити кошик
+                Популярні напої
               </button>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/70">
+              {['Натуральний смак', 'Зручне замовлення', 'Швидкий зв’язок'].map((item) => (
+                <span key={item} className="flex items-center gap-2"><Check size={16} className="text-red-300" />{item}</span>
+              ))}
             </div>
           </motion.div>
 
@@ -326,30 +348,75 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="perevagy" className="mx-auto grid max-w-7xl gap-5 px-6 py-16 md:grid-cols-3">
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6">
+      <section id="populyarni" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-red-300">Рекомендуємо почати звідси</p>
+            <h2 className="mt-3 text-4xl font-black md:text-5xl">Популярні напої</h2>
+            <p className="mt-4 max-w-2xl text-white/60">Добірка різних смаків для вечері, подарунка або особливого вечора.</p>
+          </div>
+          <button onClick={() => scrollToSection("produkty")} className="flex items-center gap-2 font-bold text-red-300 hover:text-red-200">
+            Дивитися весь асортимент <ArrowRight size={18} />
+          </button>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {popularProducts.map((product, index) => (
+            <motion.article
+              key={product.id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ delay: index * 0.06 }}
+              className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.07] shadow-xl"
+            >
+              <button onClick={() => openProduct(product)} className="relative block h-64 w-full overflow-hidden bg-white" aria-label={`Детальніше про ${product.name}`}>
+                <span className="absolute left-4 top-4 z-10 rounded-full bg-red-700 px-3 py-1 text-xs font-bold">Популярне</span>
+                <span className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105" style={{ backgroundImage: `url('${product.image}')` }} />
+              </button>
+              <div className="p-5">
+                <p className="text-xs text-red-200">{product.category} · {product.sort}</p>
+                <h3 className="mt-2 text-xl font-bold">{product.name}</h3>
+                <div className="mt-5 flex items-center justify-between gap-3">
+                  <span className="text-xl font-black">{formatPrice(product.price)}</span>
+                  <button onClick={() => addToCart(product)} className="rounded-full bg-red-700 p-3 hover:bg-red-800" aria-label={`Додати ${product.name} до кошика`}><Plus size={18} /></button>
+                </div>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </section>
+
+      <section id="perevagy" className="mx-auto grid max-w-7xl gap-5 px-6 py-16 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
           <ShieldCheck className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Надійний підбір</h3>
+          <h3 className="text-xl font-bold">Допомога з вибором</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
             Ми допомагаємо обрати вино під ваші уподобання, свято або вечір.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
           <Truck className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Швидка комунікація</h3>
+          <h3 className="text-xl font-bold">Доставка по Україні</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-            Замовлення оформлюється просто
+            Оберіть Нову Пошту або погодьте самовивіз під час підтвердження.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6">
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
           <MessageCircle className="mb-4 text-red-300" />
-          <h3 className="text-xl font-bold">Зручне замовлення</h3>
+          <h3 className="text-xl font-bold">Без реєстрації</h3>
           <p className="mt-2 text-sm leading-6 text-white/60">
-           Для зручного оформлення замовлення натисніть кнопку нижче, і ми одразу отримаємо ваше замовлення у готовому форматі.
+            Замовлення одразу надходить нам, після чого ми зв’язуємося для підтвердження.
           </p>
-        </div>
+        </motion.div>
+
+        <motion.div whileHover={{ y: -5 }} className="rounded-3xl border border-white/10 bg-white/10 p-6">
+          <Clock3 className="mb-4 text-red-300" />
+          <h3 className="text-xl font-bold">Швидкий зв’язок</h3>
+          <p className="mt-2 text-sm leading-6 text-white/60">Уточнимо наявність, деталі отримання та відповімо на запитання.</p>
+        </motion.div>
       </section>
 
       <section id="produkty" className="mx-auto max-w-7xl px-6 py-20">
@@ -384,14 +451,20 @@ export default function Home() {
           {visibleProducts.map((product) => (
             <motion.div
               key={product.id}
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.12 }}
               whileHover={{ y: -8 }}
               transition={{ type: "spring", stiffness: 220 }}
-              className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
+              className="group overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-xl"
             >
-              <div
-                className="h-52 bg-contain bg-center bg-no-repeat"
+              <button onClick={() => openProduct(product)} className="relative block h-52 w-full overflow-hidden bg-white" aria-label={`Детальніше про ${product.name}`}>
+              <span
+                className="block h-full bg-contain bg-center bg-no-repeat transition duration-500 group-hover:scale-105"
                 style={{ backgroundImage: `url('${product.image}')` }}
               />
+              <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-bold opacity-0 backdrop-blur transition group-hover:opacity-100"><Eye size={14} /> Детальніше</span>
+              </button>
 
               <div className="p-5">
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -408,6 +481,8 @@ export default function Home() {
                 <p className="mt-2 min-h-16 text-sm leading-6 text-white/60">
                   {product.description}
                 </p>
+
+                <button onClick={() => openProduct(product)} className="mt-3 text-sm font-semibold text-red-300 hover:text-red-200">Смак і деталі →</button>
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <span className="text-xl font-black">{formatPrice(product.price)}</span>
@@ -426,25 +501,75 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-950/50 to-black p-8 text-center">
-          <p className="text-sm uppercase tracking-widest text-red-300">Замовлення</p>
-          <p className="mx-auto mt-4 max-w-2xl text-white/60">
-            Оберіть товари, натисніть кнопку нижче, і ми одразу отримаємо ваше замовлення у готовому форматі.
-          </p>
-          <button
-            onClick={() => setCartOpen(true)}
-            className="mt-8 rounded-full bg-red-700 px-8 py-4 font-bold hover:bg-red-800"
-          >
-            Відкрити кошик для замовлення
-          </button>
+      <section id="yak-zamovyty" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="text-center">
+          <p className="text-sm uppercase tracking-[0.25em] text-red-300">Три прості кроки</p>
+          <h2 className="mt-3 text-4xl font-black md:text-5xl">Як оформити замовлення</h2>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {[
+            { number: '01', icon: Wine, title: 'Оберіть напої', text: 'Перегляньте категорії, смак і опис та додайте бажані позиції до кошика.' },
+            { number: '02', icon: ShoppingCart, title: 'Заповніть дані', text: 'Вкажіть контактний номер і зручний спосіб отримання замовлення.' },
+            { number: '03', icon: PackageCheck, title: 'Отримайте підтвердження', text: 'Ми отримаємо замовлення та зв’яжемося з вами для уточнення деталей.' },
+          ].map((step) => (
+            <motion.div key={step.number} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 to-transparent p-7">
+              <span className="absolute right-6 top-5 text-4xl font-black text-white/10">{step.number}</span>
+              <step.icon className="text-red-300" size={28} />
+              <h3 className="mt-5 text-xl font-bold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/60">{step.text}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-12 rounded-[2rem] border border-red-500/20 bg-gradient-to-br from-red-950/70 via-[#180909] to-black p-8 text-center md:p-12">
+          <p className="text-sm uppercase tracking-widest text-red-300">Готові обрати?</p>
+          <h2 className="mt-3 text-3xl font-black md:text-5xl">Ваше замовлення — без зайвих кроків</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-white/60">Додайте напої до кошика, а ми допоможемо завершити оформлення та відповімо на запитання.</p>
+          <button onClick={() => setCartOpen(true)} className="mt-8 rounded-full bg-red-700 px-8 py-4 font-bold hover:bg-red-800">Відкрити кошик</button>
         </div>
       </section>
 
-      <footer id="kontakt" className="border-t border-white/10 px-6 py-12 text-center text-sm text-white/50">
-        <p className="font-bold text-white">Коблівські Вина</p>
-        <p className="mt-2">© 2026 · Контакти · Telegram · Замовлення</p>
+      <footer id="kontakt" className="border-t border-white/10 px-6 py-12 text-sm text-white/50">
+        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+          <div><p className="text-lg font-black text-white">Коблівські Вина</p><p className="mt-3 max-w-sm leading-6">Добірні напої, просте оформлення та особиста допомога з вибором.</p></div>
+          <div><p className="font-bold text-white">Покупцям</p><div className="mt-3 flex flex-col gap-2"><button onClick={() => scrollToSection('produkty')} className="w-fit hover:text-white">Асортимент</button><button onClick={() => scrollToSection('yak-zamovyty')} className="w-fit hover:text-white">Як замовити</button><button onClick={() => setCartOpen(true)} className="w-fit hover:text-white">Кошик і зв’язок</button></div></div>
+          <div><p className="font-bold text-white">Важлива інформація</p><div className="mt-3 flex flex-col gap-2"><a href="/privacy" className="hover:text-white">Політика конфіденційності</a><a href="/terms" className="hover:text-white">Умови замовлення</a><span>Продаж алкогольних напоїв лише особам 18+</span></div></div>
+        </div>
+        <p className="mx-auto mt-10 max-w-7xl border-t border-white/10 pt-6">© 2026 Коблівські Вина</p>
       </footer>
+
+      <AnimatePresence>
+        {addedProductName && (
+          <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} className="fixed left-1/2 top-24 z-[60] flex -translate-x-1/2 items-center gap-3 rounded-full border border-emerald-400/30 bg-emerald-950/95 px-5 py-3 text-sm font-bold shadow-2xl backdrop-blur">
+            <Check size={18} className="text-emerald-300" /> {addedProductName} додано до кошика
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {itemCount > 0 && !cartOpen && (
+        <button onClick={() => setCartOpen(true)} className="fixed bottom-4 left-4 right-4 z-40 flex items-center justify-between rounded-2xl bg-red-700 px-5 py-4 font-bold shadow-2xl md:hidden">
+          <span className="flex items-center gap-2"><ShoppingCart size={20} /> Кошик · {itemCount}</span><span>{formatPrice(total)}</span>
+        </button>
+      )}
+
+      <AnimatePresence>
+        {selectedProduct && (
+          <>
+            <motion.button aria-label="Закрити деталі товару" className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProduct(null)} />
+            <motion.div role="dialog" aria-modal="true" initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.97 }} className="fixed left-1/2 top-1/2 z-[71] grid max-h-[88vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[2rem] border border-white/10 bg-[#160909] shadow-2xl md:grid-cols-2">
+              <div className="min-h-72 bg-white bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url('${selectedProduct.image}')` }} />
+              <div className="relative p-7 md:p-9">
+                <button onClick={() => setSelectedProduct(null)} className="absolute right-5 top-5 rounded-full bg-white/10 p-2 hover:bg-white/20" aria-label="Закрити"><X size={20} /></button>
+                <p className="pr-10 text-sm text-red-300">{selectedProduct.category} · {selectedProduct.sort}</p>
+                <h2 className="mt-3 text-3xl font-black">{selectedProduct.name}</h2>
+                <p className="mt-5 leading-7 text-white/70">{selectedProduct.description}</p>
+                <div className="mt-8 flex items-center justify-between gap-4"><span className="text-2xl font-black">{formatPrice(selectedProduct.price)}</span><button onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }} className="flex items-center gap-2 rounded-full bg-red-700 px-5 py-3 font-bold hover:bg-red-800"><Plus size={17} /> Додати</button></div>
+                <p className="mt-5 text-xs leading-5 text-white/40">Наявність та деталі отримання уточнюються під час підтвердження замовлення.</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {cartOpen && (
