@@ -429,7 +429,6 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-950/50 to-black p-8 text-center">
           <p className="text-sm uppercase tracking-widest text-red-300">Замовлення</p>
-          <h2 className="mt-3 text-4xl font-black md:text-5xl">Пишіть у Telegram</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/60">
             Оберіть товари, натисніть кнопку нижче, і ми одразу отримаємо ваше замовлення у готовому форматі.
           </p>
