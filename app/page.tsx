@@ -76,7 +76,7 @@ function productStageStyle(product: Product) {
   return {
     backgroundImage: `linear-gradient(${tint}, ${tint}), url('/images/catalog/stage.webp')`,
     backgroundPosition: "center",
-    backgroundSize: "cover",
+    backgroundSize: "100% 100%",
   };
 }
 
@@ -90,8 +90,8 @@ function productForegroundImage(product: Product) {
 function productForegroundStyle(product: Product) {
   return {
     backgroundImage: `url('${productForegroundImage(product)}')`,
-    backgroundPosition: "center 78%",
-    backgroundSize: "auto 82%",
+    backgroundPosition: "center bottom 15%",
+    backgroundSize: "auto 70%",
   };
 }
 
