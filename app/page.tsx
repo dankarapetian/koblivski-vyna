@@ -90,8 +90,9 @@ function productForegroundImage(product: Product) {
 function productForegroundStyle(product: Product) {
   return {
     backgroundImage: `url('${productForegroundImage(product)}')`,
-    backgroundPosition: "center bottom 15%",
-    backgroundSize: "auto 70%",
+    backgroundPosition: "center bottom 20%",
+    backgroundSize: "auto 65%",
+    filter: "drop-shadow(0 5px 4px rgba(0, 0, 0, 0.32))",
   };
 }
 
