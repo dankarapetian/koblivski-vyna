@@ -99,7 +99,7 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     id: "bile-vyno-drevniy-yantar",
-    name: "Древній янтар",
+    name: "Древній нектар",
     category: "Білі вина · розливне",
     categoryId: "weisswein",
     sort: "Напівсолодке",
