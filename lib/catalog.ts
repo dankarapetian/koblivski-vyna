@@ -7,6 +7,13 @@ export type CatalogProduct = {
   description: string;
   image: string;
   price: number;
+  variants?: CatalogVariant[];
+};
+
+export type CatalogVariant = {
+  id: string;
+  label: string;
+  price: number;
 };
 
 export const catalogProducts: CatalogProduct[] = [
@@ -88,6 +95,26 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Світлий відтінок, легкий фруктовий аромат із тонами білого винограду та персика.",
     image: "/images/bile-vyno.jpg",
+    price: 8000,
+  },
+  {
+    id: "bile-vyno-drevniy-yantar",
+    name: "Древній янтар",
+    category: "Білі вина · розливне",
+    categoryId: "weisswein",
+    sort: "Напівсолодке",
+    description: "Аромат сорту Дамський пальчик, м’який фруктовий смак і приємний солодкуватий післясмак.",
+    image: "/images/catalog/draft-white.webp",
+    price: 7000,
+  },
+  {
+    id: "bile-vyno-some-nebo",
+    name: "Сьоме небо",
+    category: "Білі вина · розливне",
+    categoryId: "weisswein",
+    sort: "Солодке",
+    description: "Ніжне біле солодке вино з ароматом персикової кісточки.",
+    image: "/images/catalog/draft-white.webp",
     price: 8000,
   },
   {
@@ -221,6 +248,66 @@ export const catalogProducts: CatalogProduct[] = [
     price: 8500,
   },
   {
+    id: "krasne-vino-oksamyt-myhdalnyi",
+    name: "Оксамит мигдальний",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Солодке",
+    description: "Оксамитове червоне солодке вино з виразною нотою мигдальної кісточки.",
+    image: "/images/catalog/draft-red.webp",
+    price: 8000,
+  },
+  {
+    id: "krasne-vino-kornel-don-toro",
+    name: "Корнель Дон Торо",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Солодке",
+    description: "Насичене червоне солодке вино з м’якими шоколадними відтінками.",
+    image: "/images/catalog/draft-red.webp",
+    price: 8000,
+  },
+  {
+    id: "krasne-vino-chornyi-hraf",
+    name: "Чорний граф",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Солодке · мускатне",
+    description: "Глибоке червоне солодке вино з виразним мускатним ароматом.",
+    image: "/images/catalog/draft-red.webp",
+    price: 8000,
+  },
+  {
+    id: "krasne-vino-nastoiashchyi-polkovnyk",
+    name: "Справжній полковник",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Солодке",
+    description: "Яскраве червоне солодке вино з насиченим ароматом смородини.",
+    image: "/images/catalog/draft-red.webp",
+    price: 8000,
+  },
+  {
+    id: "krasne-vino-hranatovyi-braslet",
+    name: "Гранатовий браслет",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Солодке",
+    description: "Червоне солодке вино з яскравою гранатовою нотою та м’яким післясмаком.",
+    image: "/images/catalog/draft-red.webp",
+    price: 8000,
+  },
+  {
+    id: "krasne-vino-muskat-korolivskyi",
+    name: "Мускат Королівський",
+    category: "Червоні вина · розливне",
+    categoryId: "rotwein",
+    sort: "Десертне солодке",
+    description: "Насичене десертне вино з медово-фруктовим характером і мускатним ароматом.",
+    image: "/images/catalog/draft-red.webp",
+    price: 16000,
+  },
+  {
     id: "roze-vino-knyazhnya-lidiya",
     name: "Княгиня Лідія",
     category: "Рожеві вина",
@@ -241,13 +328,23 @@ export const catalogProducts: CatalogProduct[] = [
     price: 7500,
   },
   {
+    id: "roze-vino-damskyi-kapryz",
+    name: "Дамський каприз",
+    category: "Рожеві вина · розливне",
+    categoryId: "rose",
+    sort: "Напівсолодке",
+    description: "Ніжне рожеве напівсолодке вино з ароматом вишневої кісточки.",
+    image: "/images/catalog/draft-rose.webp",
+    price: 7000,
+  },
+  {
     id: "igriste-vino-brut",
     name: "Ігристе вино Brut",
     category: "Ігристі вина",
     categoryId: "schaumwein",
     sort: "Brut",
     description: "Ніжна перлівка, свіжість і святковий настрій у кожній келиху.",
-    image: "/images/igriste-vino.jpg",
+    image: "/images/catalog/sparkling.webp",
     price: 1499,
   },
   {
@@ -257,7 +354,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "schaumwein",
     sort: "Demi-Sec",
     description: "Напівсухе ігристе вино з м’якою фруктовістю.",
-    image: "/images/igriste-vino.jpg",
+    image: "/images/catalog/sparkling.webp",
     price: 1599,
   },
   {
@@ -347,7 +444,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "spirituosen",
     sort: "Classic",
     description: "Традиційна спеціальність з яскравим характером і глибоким смаком.",
-    image: "/images/chacha.jpg",
+    image: "/images/catalog/chacha.webp",
     price: 1899,
   },
   {
@@ -357,7 +454,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "spirituosen",
     sort: "Classic",
     description: "Елегантний, теплий і м’який у фіналі напій для особливих моментів.",
-    image: "/images/konjak.jpg",
+    image: "/images/catalog/konjak.webp",
     price: 2499,
   },
   {
@@ -367,7 +464,7 @@ export const catalogProducts: CatalogProduct[] = [
     categoryId: "spirituosen",
     sort: "Classic",
     description: "Солодкувата пряність з глибиною і приємним ароматом.",
-    image: "/images/rom.jpg",
+    image: "/images/catalog/rom.webp",
     price: 2199,
   },
   {
@@ -401,14 +498,18 @@ export const catalogProducts: CatalogProduct[] = [
     price: 19300,
   },
   {
-    id: "koblevo-grand-vs-05",
-    name: "KOBLEVO Grand V.S., 0,5 л",
+    id: "koblevo-grand-vs",
+    name: "KOBLEVO Grand V.S.",
     category: "Коньяки та бренді · пляшка",
     categoryId: "brandy",
     sort: "V.S. · 3 роки",
     description: "Квітковий аромат, ваніль, горіх і м’які дубові ноти у теплому післясмаку.",
     image: "/images/bottled/koblevo-grand-vs.webp",
-    price: 19400,
+    price: 9700,
+    variants: [
+      { id: "koblevo-grand-vs-025", label: "0,25 л", price: 9700 },
+      { id: "koblevo-grand-vs-05", label: "0,5 л", price: 19400 },
+    ],
   },
   {
     id: "koblevo-mykolaiv-vsop-05",
@@ -421,14 +522,18 @@ export const catalogProducts: CatalogProduct[] = [
     price: 21000,
   },
   {
-    id: "koblevo-grand-reserve-vsop-05",
-    name: "KOBLEVO Grand Reserve V.S.O.P., 0,5 л",
+    id: "koblevo-grand-reserve-vsop",
+    name: "KOBLEVO Grand Reserve V.S.O.P.",
     category: "Коньяки та бренді · пляшка",
     categoryId: "brandy",
     sort: "V.S.O.P. · 5 років",
     description: "Сухофрукти, лісовий горіх, ваніль і темний шоколад у тривалому післясмаку.",
     image: "/images/bottled/koblevo-grand-reserve-vsop.webp",
-    price: 23300,
+    price: 11400,
+    variants: [
+      { id: "koblevo-grand-reserve-vsop-025", label: "0,25 л", price: 11400 },
+      { id: "koblevo-grand-reserve-vsop-05", label: "0,5 л", price: 23300 },
+    ],
   },
   {
     id: "koblevo-chardonnay-bottle",
@@ -693,7 +798,35 @@ export const catalogProducts: CatalogProduct[] = [
 ];
 
 export function getCatalogProductById(id: string) {
-  return catalogProducts.find((product) => product.id === id) ?? null;
+  const directProduct = catalogProducts.find((product) => product.id === id);
+
+  if (directProduct && !directProduct.variants?.length) return directProduct;
+
+  for (const product of catalogProducts) {
+    const variant = product.variants?.find((item) => item.id === id);
+    if (variant) {
+      return {
+        ...product,
+        id: variant.id,
+        name: `${product.name}, ${variant.label}`,
+        price: variant.price,
+        variants: undefined,
+      };
+    }
+  }
+
+  if (directProduct?.variants?.length) {
+    const firstVariant = directProduct.variants[0];
+    return {
+      ...directProduct,
+      id: firstVariant.id,
+      name: `${directProduct.name}, ${firstVariant.label}`,
+      price: firstVariant.price,
+      variants: undefined,
+    };
+  }
+
+  return null;
 }
 
 export function getCatalogProductsForCategory(categoryId: string) {
