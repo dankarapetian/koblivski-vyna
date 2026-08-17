@@ -1,6 +1,7 @@
 "use client";
 
 import AgeGate from "./AgeGate";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin, Search } from "lucide-react";
@@ -388,8 +389,15 @@ export default function Home() {
       <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-900">
-              <Wine size={24} />
+            <div className="flex h-11 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fff8ed] p-1.5 shadow-[0_8px_24px_rgba(127,29,29,0.24)]">
+              <Image
+                src="/images/va-logo.webp"
+                alt="Логотип VA"
+                width={900}
+                height={435}
+                className="h-full w-full object-contain"
+                priority
+              />
             </div>
 
             <div>
