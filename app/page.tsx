@@ -76,6 +76,12 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [addedProductName, setAddedProductName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactWebsite, setContactWebsite] = useState("");
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
   const formStartedAt = useRef(0);
 
   useEffect(() => {
@@ -119,6 +125,54 @@ export default function Home() {
 
   function openProduct(product: Product) {
     setSelectedProduct(product);
+  }
+
+  async function submitContact(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (contactSubmitting || contactWebsite) return;
+
+    const name = contactName.trim();
+    const phone = contactPhone.trim();
+    const message = contactMessage.trim();
+    const phoneDigits = phone.replace(/\D/g, "");
+
+    if (!name || phoneDigits.length < 10 || phoneDigits.length > 15 || message.length < 5) {
+      setContactStatus("error");
+      return;
+    }
+
+    try {
+      setContactSubmitting(true);
+      setContactStatus("idle");
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          requestId: crypto.randomUUID(),
+          startedAt: formStartedAt.current,
+          website: contactWebsite,
+          name,
+          phone,
+          message,
+        }),
+      });
+
+      if (!response.ok) {
+        setContactStatus("error");
+        return;
+      }
+
+      setContactStatus("success");
+      setContactName("");
+      setContactPhone("");
+      setContactMessage("");
+      formStartedAt.current = Date.now();
+    } catch {
+      setContactStatus("error");
+    } finally {
+      setContactSubmitting(false);
+    }
   }
 
   function increaseQty(id: string) {
@@ -529,10 +583,38 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="contact-form" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="grid overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] md:grid-cols-[0.9fr_1.1fr]">
+          <div className="bg-gradient-to-br from-red-950 via-[#240b0b] to-black p-8 md:p-12">
+            <p className="text-sm uppercase tracking-[0.25em] text-red-300">Зв’язатися з нами</p>
+            <h2 className="mt-4 text-4xl font-black">Залишилися запитання?</h2>
+            <p className="mt-5 max-w-md leading-7 text-white/65">Напишіть нам про смак, наявність або отримання. Повідомлення одразу надійде в наш Telegram-чат, і ми зв’яжемося з вами.</p>
+            <div className="mt-8 space-y-4 text-sm text-white/70">
+              <p className="flex items-center gap-3"><MessageCircle className="text-red-300" size={20} /> Відповідь у зручному форматі</p>
+              <p className="flex items-center gap-3"><ShieldCheck className="text-red-300" size={20} /> Дані використовуються лише для відповіді</p>
+              <p className="flex items-center gap-3"><Clock3 className="text-red-300" size={20} /> Звернення не загубиться серед замовлень</p>
+            </div>
+          </div>
+
+          <form onSubmit={submitContact} className="space-y-4 p-8 md:p-12">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-semibold"><span>Ваше ім’я</span><input required value={contactName} onChange={(event) => setContactName(event.target.value)} maxLength={80} autoComplete="name" placeholder="Ім’я" className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-normal outline-none placeholder:text-white/35 focus:border-red-500" /></label>
+              <label className="grid gap-2 text-sm font-semibold"><span>Номер телефону</span><input required value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} maxLength={30} type="tel" inputMode="tel" autoComplete="tel" placeholder="+380…" className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-normal outline-none placeholder:text-white/35 focus:border-red-500" /></label>
+            </div>
+            <input type="text" tabIndex={-1} autoComplete="off" value={contactWebsite} onChange={(event) => setContactWebsite(event.target.value)} name="contact-website" className="absolute left-[-9999px] h-0 w-0 opacity-0" aria-hidden="true" />
+            <label className="grid gap-2 text-sm font-semibold"><span>Ваше повідомлення</span><textarea required value={contactMessage} onChange={(event) => setContactMessage(event.target.value)} minLength={5} maxLength={1000} rows={5} placeholder="Напишіть, чим ми можемо допомогти…" className="resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-normal outline-none placeholder:text-white/35 focus:border-red-500" /></label>
+            {contactStatus === "success" && <p role="status" className="rounded-2xl border border-emerald-400/30 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">Дякуємо! Повідомлення надіслано. Ми зв’яжемося з вами.</p>}
+            {contactStatus === "error" && <p role="alert" className="rounded-2xl border border-red-400/30 bg-red-950/50 px-4 py-3 text-sm text-red-200">Перевірте ім’я, телефон і повідомлення або спробуйте ще раз.</p>}
+            <button disabled={contactSubmitting} type="submit" className="flex w-full items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 font-bold hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"><MessageCircle size={19} />{contactSubmitting ? "Надсилаємо…" : "Надіслати повідомлення"}</button>
+            <p className="text-xs leading-5 text-white/40">Натискаючи кнопку, ви погоджуєтеся на використання введених даних для відповіді на звернення.</p>
+          </form>
+        </div>
+      </section>
+
       <footer id="kontakt" className="border-t border-white/10 px-6 py-12 text-sm text-white/50">
         <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
           <div><p className="text-lg font-black text-white">Коблівські Вина</p><p className="mt-3 max-w-sm leading-6">Добірні напої, просте оформлення та особиста допомога з вибором.</p></div>
-          <div><p className="font-bold text-white">Покупцям</p><div className="mt-3 flex flex-col gap-2"><button onClick={() => scrollToSection('produkty')} className="w-fit hover:text-white">Асортимент</button><button onClick={() => scrollToSection('yak-zamovyty')} className="w-fit hover:text-white">Як замовити</button><button onClick={() => setCartOpen(true)} className="w-fit hover:text-white">Кошик і зв’язок</button></div></div>
+          <div><p className="font-bold text-white">Покупцям</p><div className="mt-3 flex flex-col gap-2"><button onClick={() => scrollToSection('produkty')} className="w-fit hover:text-white">Асортимент</button><button onClick={() => scrollToSection('yak-zamovyty')} className="w-fit hover:text-white">Як замовити</button><button onClick={() => scrollToSection('contact-form')} className="w-fit hover:text-white">Контактна форма</button><button onClick={() => setCartOpen(true)} className="w-fit hover:text-white">Кошик</button></div></div>
           <div><p className="font-bold text-white">Важлива інформація</p><div className="mt-3 flex flex-col gap-2"><a href="/privacy" className="hover:text-white">Політика конфіденційності</a><a href="/terms" className="hover:text-white">Умови замовлення</a><span>Продаж алкогольних напоїв лише особам 18+</span></div></div>
         </div>
         <p className="mx-auto mt-10 max-w-7xl border-t border-white/10 pt-6">© 2026 Коблівські Вина</p>
