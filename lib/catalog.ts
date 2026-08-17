@@ -257,16 +257,7 @@ export const catalogProducts: CatalogProduct[] = [
     image: "/images/catalog/draft-red.webp",
     price: 8000,
   },
-  {
-    id: "krasne-vino-kornel-don-toro",
-    name: "Корнель Дон Торо",
-    category: "Червоні вина · розливне",
-    categoryId: "rotwein",
-    sort: "Солодке",
-    description: "Насичене червоне солодке вино з м’якими шоколадними відтінками.",
-    image: "/images/catalog/draft-red.webp",
-    price: 8000,
-  },
+
   {
     id: "krasne-vino-chornyi-hraf",
     name: "Чорний граф",
