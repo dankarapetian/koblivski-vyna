@@ -337,26 +337,7 @@ export const catalogProducts: CatalogProduct[] = [
     image: "/images/catalog/draft-rose.webp",
     price: 7000,
   },
-  {
-    id: "igriste-vino-brut",
-    name: "Ігристе вино Brut",
-    category: "Ігристі вина",
-    categoryId: "schaumwein",
-    sort: "Brut",
-    description: "Ніжна перлівка, свіжість і святковий настрій у кожній келиху.",
-    image: "/images/catalog/sparkling.webp",
-    price: 1499,
-  },
-  {
-    id: "igriste-vino-demisec",
-    name: "Ігристе вино Demi-Sec",
-    category: "Ігристі вина",
-    categoryId: "schaumwein",
-    sort: "Demi-Sec",
-    description: "Напівсухе ігристе вино з м’якою фруктовістю.",
-    image: "/images/catalog/sparkling.webp",
-    price: 1599,
-  },
+ 
   {
     id: "marengo-brut-075",
     name: "Marengo Brut, 0,75 л",
