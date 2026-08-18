@@ -1057,7 +1057,7 @@ export default function Home() {
                     </button>
 
                     <p className="mt-3 text-xs text-white/40">
-                      Після натискання відкриється Telegram із готовим текстом замовлення та адресою доставки.
+                      
                     </p>
                   </div>
                 </div>
