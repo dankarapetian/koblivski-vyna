@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TurnstileWidgetId = string;
 
@@ -40,11 +40,30 @@ export default function Turnstile({ action, ready, resetSignal, onVerify }: Turn
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const onVerifyRef = useRef(onVerify);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
+  const [siteKey, setSiteKey] = useState<string | null>(null);
 
   useEffect(() => {
     onVerifyRef.current = onVerify;
   }, [onVerify]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch("/api/turnstile/config", {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((data: { siteKey?: unknown }) => {
+        setSiteKey(typeof data.siteKey === "string" ? data.siteKey.trim() : "");
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setSiteKey("");
+      });
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -82,6 +101,10 @@ export default function Turnstile({ action, ready, resetSignal, onVerify }: Turn
     onVerifyRef.current("");
     window.turnstile.reset(widgetIdRef.current);
   }, [resetSignal]);
+
+  if (siteKey === null) {
+    return <div className="min-h-[65px] w-full animate-pulse rounded-xl bg-white/5" aria-label="Завантаження перевірки Cloudflare" />;
+  }
 
   if (!siteKey) {
     return (
