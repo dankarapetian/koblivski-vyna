@@ -6,7 +6,6 @@ import {
   isSameOriginRequest,
   logSuspiciousRequest,
 } from "@/lib/security";
-import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const MAX_BODY_BYTES = 8_000;
 
@@ -16,7 +15,6 @@ type ContactPayload = {
   name: string;
   phone: string;
   message: string;
-  turnstileToken: string;
 };
 
 function cleanText(value: unknown, maxLength: number) {
@@ -32,7 +30,6 @@ function normalizePayload(value: unknown): ContactPayload | null {
   const name = cleanText(input.name, 80);
   const phone = cleanText(input.phone, 30);
   const message = cleanText(input.message, 1000);
-  const turnstileToken = cleanText(input.turnstileToken, 2_048);
   const website = cleanText(input.website, 200);
   const startedAt = typeof input.startedAt === "number" ? input.startedAt : 0;
   const formAge = Date.now() - startedAt;
@@ -41,10 +38,9 @@ function normalizePayload(value: unknown): ContactPayload | null {
   if (!/^[0-9a-f-]{36}$/i.test(requestId)) return null;
   if (!name || phoneDigits.length < 10 || phoneDigits.length > 15) return null;
   if (message.length < 5 || website) return null;
-  if (!turnstileToken) return null;
   if (!Number.isFinite(startedAt) || formAge < 2_000 || formAge > 7_200_000) return null;
 
-  return { requestId, startedAt, name, phone, message, turnstileToken };
+  return { requestId, startedAt, name, phone, message };
 }
 
 function json(body: Record<string, unknown>, status = 200, headers?: HeadersInit) {
@@ -82,23 +78,6 @@ export async function POST(request: NextRequest) {
 
     const payload = normalizePayload(JSON.parse(rawBody));
     if (!payload) return json({ error: "Перевірте введені дані." }, 400);
-
-    const turnstile = await verifyTurnstileToken({
-      token: payload.turnstileToken,
-      remoteIp: getClientIpForLogs(request),
-      expectedAction: "contact",
-      idempotencyKey: payload.requestId,
-    });
-
-    if (!turnstile.valid) {
-      logSuspiciousRequest({
-        path: request.nextUrl.pathname,
-        ip: getClientIpForLogs(request),
-        reason: "turnstile_rejected",
-        errors: turnstile.errors,
-      });
-      return json({ error: "Не вдалося підтвердити перевірку Cloudflare. Спробуйте ще раз." }, 400);
-    }
 
     const botToken = getTelegramBotToken();
     const chatId = getTelegramChatId();
