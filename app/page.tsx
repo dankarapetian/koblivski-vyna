@@ -1,7 +1,9 @@
 "use client";
 
 import AgeGate from "./AgeGate";
+import Turnstile from "./Turnstile";
 import Image from "next/image";
+import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin, Search } from "lucide-react";
@@ -141,6 +143,11 @@ export default function Home() {
   const [contactWebsite, setContactWebsite] = useState("");
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const [orderTurnstileToken, setOrderTurnstileToken] = useState("");
+  const [contactTurnstileToken, setContactTurnstileToken] = useState("");
+  const [orderTurnstileReset, setOrderTurnstileReset] = useState(0);
+  const [contactTurnstileReset, setContactTurnstileReset] = useState(0);
   const formStartedAt = useRef(0);
 
   useEffect(() => {
@@ -223,6 +230,11 @@ export default function Home() {
       return;
     }
 
+    if (!contactTurnstileToken) {
+      setContactStatus("error");
+      return;
+    }
+
     try {
       setContactSubmitting(true);
       setContactStatus("idle");
@@ -237,11 +249,13 @@ export default function Home() {
           name,
           phone,
           message,
+          turnstileToken: contactTurnstileToken,
         }),
       });
 
       if (!response.ok) {
         setContactStatus("error");
+        setContactTurnstileReset((value) => value + 1);
         return;
       }
 
@@ -249,9 +263,11 @@ export default function Home() {
       setContactName("");
       setContactPhone("");
       setContactMessage("");
+      setContactTurnstileReset((value) => value + 1);
       formStartedAt.current = Date.now();
     } catch {
       setContactStatus("error");
+      setContactTurnstileReset((value) => value + 1);
     } finally {
       setContactSubmitting(false);
     }
@@ -310,6 +326,11 @@ export default function Home() {
       return;
     }
 
+    if (!orderTurnstileToken) {
+      window.alert("Підтвердіть, що ви не робот.");
+      return;
+    }
+
     if (!trimmedAddress || trimmedAddress === "Самовивіз") {
       if (deliveryType === "nova-poshta") {
         window.alert("Будь ласка, заповніть адресу доставки для Нової Пошти.");
@@ -332,6 +353,7 @@ export default function Home() {
       })),
       deliveryType,
       ageConfirmed,
+      turnstileToken: orderTurnstileToken,
       ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
       ...(customerSurname.trim() ? { customerSurname: customerSurname.trim() } : {}),
       ...(customerPhone.trim() ? { customerPhone: customerPhone.trim() } : {}),
@@ -361,6 +383,7 @@ export default function Home() {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
+        setOrderTurnstileReset((value) => value + 1);
         window.alert(data?.error || "Не вдалося надіслати замовлення. Спробуйте ще раз.");
         return;
       }
@@ -369,13 +392,16 @@ export default function Home() {
         window.open(data.telegramUrl, "_blank", "noopener,noreferrer");
         window.alert("Замовлення підготовлено. Відкриваємо Telegram.");
         setCart([]);
+        setOrderTurnstileReset((value) => value + 1);
         return;
       }
 
       window.alert("Замовлення відправлено. Ми зв’яжемося з вами найближчим часом.");
       setCart([]);
       setNotes("");
+      setOrderTurnstileReset((value) => value + 1);
     } catch {
+      setOrderTurnstileReset((value) => value + 1);
       window.alert("Не вдалося надіслати замовлення. Спробуйте ще раз.");
     } finally {
       setSubmitting(false);
@@ -384,7 +410,13 @@ export default function Home() {
 
   return (
     <>
-  <AgeGate />
+      <Script
+        id="cloudflare-turnstile"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onReady={() => setTurnstileReady(true)}
+      />
+      <AgeGate />
     <main className="min-h-screen bg-black text-white">
       <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
@@ -744,8 +776,9 @@ export default function Home() {
             <input type="text" tabIndex={-1} autoComplete="off" value={contactWebsite} onChange={(event) => setContactWebsite(event.target.value)} name="contact-website" className="absolute left-[-9999px] h-0 w-0 opacity-0" aria-hidden="true" />
             <label className="grid gap-2 text-sm font-semibold"><span>Ваше повідомлення</span><textarea required value={contactMessage} onChange={(event) => setContactMessage(event.target.value)} minLength={5} maxLength={1000} rows={5} placeholder="Напишіть, чим ми можемо допомогти…" className="resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-normal outline-none placeholder:text-white/35 focus:border-red-500" /></label>
             {contactStatus === "success" && <p role="status" className="rounded-2xl border border-emerald-400/30 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">Дякуємо! Повідомлення надіслано. Ми зв’яжемося з вами.</p>}
-            {contactStatus === "error" && <p role="alert" className="rounded-2xl border border-red-400/30 bg-red-950/50 px-4 py-3 text-sm text-red-200">Перевірте ім’я, телефон і повідомлення або спробуйте ще раз.</p>}
-            <button disabled={contactSubmitting} type="submit" className="flex w-full items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 font-bold hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"><MessageCircle size={19} />{contactSubmitting ? "Надсилаємо…" : "Надіслати повідомлення"}</button>
+            {contactStatus === "error" && <p role="alert" className="rounded-2xl border border-red-400/30 bg-red-950/50 px-4 py-3 text-sm text-red-200">Перевірте ім’я, телефон, повідомлення та перевірку Cloudflare або спробуйте ще раз.</p>}
+            <Turnstile action="contact" ready={turnstileReady} resetSignal={contactTurnstileReset} onVerify={setContactTurnstileToken} />
+            <button disabled={contactSubmitting || !contactTurnstileToken} type="submit" className="flex w-full items-center justify-center gap-2 rounded-full bg-red-700 px-6 py-4 font-bold hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"><MessageCircle size={19} />{contactSubmitting ? "Надсилаємо…" : "Надіслати повідомлення"}</button>
             <p className="text-xs leading-5 text-white/40">Натискаючи кнопку, ви погоджуєтеся на використання введених даних для відповіді на звернення.</p>
           </form>
         </div>
@@ -1046,11 +1079,13 @@ export default function Home() {
                         />
                         <span>Підтверджую, що мені виповнилося 18 років</span>
                       </label>
+
+                      <Turnstile action="checkout" ready={turnstileReady} resetSignal={orderTurnstileReset} onVerify={setOrderTurnstileToken} />
                     </div>
 
                     <button
                       onClick={() => void submitOrder()}
-                      disabled={submitting || !ageConfirmed}
+                      disabled={submitting || !ageConfirmed || !orderTurnstileToken}
                       className="mt-5 w-full rounded-full bg-red-700 py-4 font-black hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {submitting ? "Надсилаємо..." : "Замовити"}
