@@ -11,6 +11,24 @@ import { getCatalogProductById } from "@/lib/catalog";
 const MAX_BODY_BYTES = 20_000;
 const MAX_ITEMS = 30;
 const MAX_QTY = 20;
+const ORDER_FIELDS = new Set([
+  "requestId",
+  "startedAt",
+  "website",
+  "items",
+  "customerName",
+  "customerSurname",
+  "customerPhone",
+  "ageConfirmed",
+  "deliveryType",
+  "region",
+  "district",
+  "city",
+  "street",
+  "warehouse",
+  "notes",
+]);
+const ITEM_FIELDS = new Set(["id", "qty"]);
 
 type OrderPayload = {
   requestId: string;
@@ -36,9 +54,29 @@ function cleanText(value: unknown, maxLength: number) {
 }
 
 function normalizePayload(value: unknown): OrderPayload | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const payload = value as Record<string, unknown>;
+  if (Object.keys(payload).some((key) => !ORDER_FIELDS.has(key))) return null;
+
+  const stringLimits: Record<string, number> = {
+    requestId: 80,
+    website: 200,
+    customerName: 80,
+    customerSurname: 80,
+    customerPhone: 30,
+    region: 100,
+    district: 100,
+    city: 100,
+    street: 160,
+    warehouse: 120,
+    notes: 500,
+  };
+
+  for (const [key, maxLength] of Object.entries(stringLimits)) {
+    const field = payload[key];
+    if (field !== undefined && (typeof field !== "string" || field.length > maxLength)) return null;
+  }
   const requestId = cleanText(payload.requestId, 80);
   const customerName = cleanText(payload.customerName, 80);
   const customerSurname = cleanText(payload.customerSurname, 80);
@@ -69,9 +107,10 @@ function normalizePayload(value: unknown): OrderPayload | null {
   const seenIds = new Set<string>();
 
   for (const item of items) {
-    if (!item || typeof item !== "object") return null;
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
     const entry = item as Record<string, unknown>;
-    const id = typeof entry.id === "string" ? entry.id.slice(0, 120) : "";
+    if (Object.keys(entry).some((key) => !ITEM_FIELDS.has(key))) return null;
+    const id = typeof entry.id === "string" && entry.id.length <= 120 ? entry.id : "";
     const qty = entry.qty;
 
     if (!id || seenIds.has(id) || !Number.isInteger(qty) || (qty as number) < 1 || (qty as number) > MAX_QTY) {
@@ -169,7 +208,8 @@ export async function POST(request: NextRequest) {
     return json({ error: "Запит відхилено." }, 403);
   }
 
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+  const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (mediaType !== "application/json") {
     return json({ error: "Потрібен JSON-запит." }, 415);
   }
 
@@ -223,6 +263,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export function GET() {
+function methodNotAllowed() {
   return json({ error: "Method not allowed" }, 405, { Allow: "POST" });
 }
+
+export const GET = methodNotAllowed;
+export const HEAD = methodNotAllowed;
+export const PUT = methodNotAllowed;
+export const PATCH = methodNotAllowed;
+export const DELETE = methodNotAllowed;
+export const OPTIONS = methodNotAllowed;
