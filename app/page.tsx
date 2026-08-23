@@ -784,12 +784,6 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {itemCount > 0 && !cartOpen && (
-        <button onClick={() => setCartOpen(true)} className="fixed bottom-4 left-4 right-4 z-40 flex items-center justify-between rounded-2xl bg-red-700 px-5 py-4 font-bold shadow-2xl md:hidden">
-          <span className="flex items-center gap-2"><ShoppingCart size={20} /> Кошик · {itemCount}</span><span>{formatPrice(total)}</span>
-        </button>
-      )}
-
       <AnimatePresence>
         {selectedProduct && selectedProductOption && (
           <>
