@@ -25,7 +25,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: " насичений, помірно кислий, з м'якими нотами фруктів та легким шлейфом ванілі у післясмаку.",
     image: "/images/bile-vyno.jpg",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "bile-vyno-alzanska-dolina",
@@ -35,7 +35,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Зелене яблуко, груша, білий виноград, цитрус.",
     image: "/images/bile-vyno.jpg",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "bile-vyno-la-perla-bianko",
@@ -45,7 +45,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Персик, абрикос, білі квіти, медові відтінки.",
     image: "/images/bile-vyno.jpg",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "bile-vyno-shardonay",
@@ -55,7 +55,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Яблуко, цитрус, вершковість, трохи ванілі.",
     image: "/images/bile-vyno.jpg",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "bile-vyno-bila-orhideya",
@@ -65,7 +65,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Білі квіти, груша, абрикос, мед.",
     image: "/images/bile-vyno.jpg",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "bile-vyno-videnskyy-vals",
@@ -75,7 +75,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Мигдаль, білий персик, квітковий аромат.",
     image: "/images/bile-vyno.jpg",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "bile-vyno-ayva",
@@ -85,7 +85,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Айва, яблуко, груша, легка свіжість.",
     image: "/images/bile-vyno.jpg",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "bile-vyno-shato-royal",
@@ -95,7 +95,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Світлий відтінок, легкий фруктовий аромат із тонами білого винограду та персика.",
     image: "/images/bile-vyno.jpg",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "bile-vyno-drevniy-yantar",
@@ -105,7 +105,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Аромат сорту Дамський пальчик, м’який фруктовий смак і приємний солодкуватий післясмак.",
     image: "/images/catalog/draft-white.webp",
-    price: 7000,
+    price: 8000,
   },
   {
     id: "bile-vyno-some-nebo",
@@ -115,7 +115,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Ніжне біле солодке вино з ароматом персикової кісточки.",
     image: "/images/catalog/draft-white.webp",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "bile-vyno-muskat-bilyi-chervonoho-kameniu",
@@ -125,7 +125,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Десертне солодке",
     description: "Ароматне десертне біле вино з виразними мускатними, медовими та квітковими нотами.",
     image: "/images/catalog/draft-white.webp",
-    price: 16000,
+    price: 17000,
   },
   {
     id: "krasne-vino-alzanska-dolina",
@@ -135,7 +135,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Вишня, слива, чорна смородина.",
     image: "/images/fon-red-wine.png",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "krasne-vino-valensiya-smorodina",
@@ -145,7 +145,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Смородина, полуниця, стиглі ягоди.",
     image: "/images/fon-red-wine.png",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "krasne-vino-dika-cherezha",
@@ -155,7 +155,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Черешня, вишня, ягідне варення.",
     image: "/images/fon-red-wine2.png ",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "krasne-vino-odeskyi-chorniy",
@@ -165,7 +165,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Чорнослив, ожина, спеції, шоколад.",
     image: "/images/fon-red-wine.png",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "krasne-vino-kaberne-elitne",
@@ -175,7 +175,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Чорна смородина, дуб, шоколад, вишня.",
     image: "/images/fon-red-wine2.png",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "krasne-vino-rubino-grande",
@@ -185,7 +185,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Ожина, слива, чорна смородина.",
     image: "/images/fon-red-wine.png",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "krasne-vino-ridniy-krai",
@@ -195,7 +195,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Вишня, чорні ягоди, м’які таніни.",
     image: "/images/fon-red-wine.png",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "krasne-vino-ah-nuar",
@@ -205,7 +205,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Малина, ожина, чорниця.",
     image: "/images/fon-red-wine2.png",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "krasne-vino-matador",
@@ -215,7 +215,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсухе",
     description: "Смородина, чорниця, спеції.",
     image: "/images/fon-red-wine.png",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "krasne-vino-bastard",
@@ -225,7 +225,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Чорнослив, спеції, бархатистий смак.",
     image: "/images/fon-red-wine.png",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "krasne-vino-izabella",
@@ -235,7 +235,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Полуниця, клубника, виноград Ізабелла.",
     image: "/images/fon-red-wine2.png",
-    price: 7000,
+    price: 8000,
   },
   {
     id: "krasne-vino-glintvein",
@@ -245,7 +245,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Кориця, гвоздика, апельсин, червоні ягоди.",
     image: "/images/fon-red-wine2.png",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "krasne-vino-vermut-fratelli-amaretto",
@@ -255,7 +255,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Десертне",
     description: "Амаретто, мигдаль, вишня, полуниця, ваніль.",
     image: "/images/fon-red-wine2.png",
-    price: 8500,
+    price: 9500,
   },
   {
     id: "krasne-vino-oksamyt-myhdalnyi",
@@ -265,7 +265,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Оксамитове червоне солодке вино з виразною нотою мигдальної кісточки.",
     image: "/images/catalog/draft-red.webp",
-    price: 8000,
+    price: 9000,
   },
 
   {
@@ -276,7 +276,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке · мускатне",
     description: "Глибоке червоне солодке вино з виразним мускатним ароматом.",
     image: "/images/catalog/draft-red.webp",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "krasne-vino-nastoiashchyi-polkovnyk",
@@ -286,7 +286,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Яскраве червоне солодке вино з насиченим ароматом смородини.",
     image: "/images/catalog/draft-red.webp",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "krasne-vino-hranatovyi-braslet",
@@ -296,7 +296,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Червоне солодке вино з яскравою гранатовою нотою та м’яким післясмаком.",
     image: "/images/catalog/draft-red.webp",
-    price: 8000,
+    price: 9000,
   },
   {
     id: "krasne-vino-muskat-korolivskyi",
@@ -306,7 +306,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Десертне солодке",
     description: "Насичене десертне вино з медово-фруктовим характером і мускатним ароматом.",
     image: "/images/catalog/draft-red.webp",
-    price: 16000,
+    price: 17000,
   },
   {
     id: "roze-vino-knyazhnya-lidiya",
@@ -316,7 +316,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Полусладкое",
     description: "Лічі, пелюстки троянди, полуниця, малина.",
     image: "/images/roze-vino.jpg",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "roze-vino-chornomorska-perlyna",
@@ -326,7 +326,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Полуниця, малина, персик, квітковий аромат.",
     image: "/images/roze-vino.jpg",
-    price: 7500,
+    price: 8500,
   },
   {
     id: "roze-vino-damskyi-kapryz",
@@ -336,7 +336,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Ніжне рожеве напівсолодке вино з ароматом вишневої кісточки.",
     image: "/images/catalog/draft-rose.webp",
-    price: 7000,
+    price: 8000,
   },
  
   {
@@ -347,7 +347,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Брют",
     description: "Свіже біле ігристе з делікатними квітковими нотами та чистим сухим післясмаком.",
     image: "/images/bottled/marengo-brut.webp",
-    price: 16400,
+    price: 17400,
   },
   {
     id: "marengo-pinot-grigio-brut-075",
@@ -357,7 +357,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Брют",
     description: "Білі ягоди, легкий квітковий аромат і освіжаючий сухий смак.",
     image: "/images/bottled/marengo-pinot-grigio-brut.webp",
-    price: 16400,
+    price: 17400,
   },
   {
     id: "marengo-chardonnay-semi-dry-075",
@@ -367,7 +367,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсухе",
     description: "М’яке ігристе Chardonnay з фруктовими та цитрусовими відтінками.",
     image: "/images/bottled/marengo-chardonnay-semi-dry.webp",
-    price: 16400,
+    price: 17400,
   },
   {
     id: "marengo-sweet-bianco-075",
@@ -377,7 +377,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Ароматне солодке ігристе з квітково-фруктовим смаком і ніжними бульбашками.",
     image: "/images/bottled/marengo-sweet-bianco.webp",
-    price: 16400,
+    price: 17400,
   },
   {
     id: "marengo-bellini-075",
@@ -387,7 +387,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Солодке",
     description: "Яскравий персиковий смак, легка фруктова солодкість і святкова ігристість.",
     image: "/images/bottled/marengo-bellini.webp",
-    price: 18000,
+    price: 19000,
   },
   {
     id: "marengo-moscato-075",
@@ -397,7 +397,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Виразний мускатний аромат, квіткові ноти та м’який фруктовий післясмак.",
     image: "/images/bottled/marengo-moscato.webp",
-    price: 18900,
+    price: 19900,
   },
   {
     id: "marengo-semi-sweet-rose-075",
@@ -407,7 +407,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Рожеве напівсолодке",
     description: "Ніжне рожеве ігристе з ароматом червоних ягід і м’якою солодкістю.",
     image: "/images/bottled/marengo-semi-sweet-rose.webp",
-    price: 18900,
+    price: 19900,
   },
   {
     id: "marengo-semi-sweet-bianco-075",
@@ -417,7 +417,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Гармонійне біле ігристе з фруктовим ароматом і збалансованою солодкістю.",
     image: "/images/bottled/marengo-semi-sweet-bianco.webp",
-    price: 18900,
+    price: 19900,
   },
   {
     id: "chacha-myhdal-draft",
@@ -427,7 +427,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Мигдальна",
     description: "Міцний ароматний напій із виразною мигдальною нотою та теплим тривалим післясмаком.",
     image: "/images/catalog/draft-clear.webp",
-    price: 36000,
+    price: 37000,
   },
   {
     id: "rom-billi-bons-draft",
@@ -437,7 +437,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Білий ром · 35%",
     description: "Прозорий білий ром із м’яким характером, легкою солодкістю та пряними відтінками.",
     image: "/images/catalog/draft-almond.webp",
-    price: 32000,
+    price: 33000,
   },
   {
     id: "koniak-hruzynskyi-draft",
@@ -447,7 +447,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Розливний",
     description: "Насичений грузинський коньяк із теплими дубовими, ванільними та фруктовими нотами.",
     image: "/images/catalog/draft-cognac.webp",
-    price: 39000,
+    price: 40000,
   },
   {
     id: "koblevo-classic-brandy-05",
@@ -457,7 +457,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Ординарний",
     description: "М’який український бренді з нотами ванілі, волоського горіха та дуба.",
     image: "/images/bottled/koblevo-classic-brandy.webp",
-    price: 11800,
+    price: 12800,
   },
   {
     id: "brandson-classic-05",
@@ -467,7 +467,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Ординарний · 36%",
     description: "Збалансований бренді з теплими горіховими, ванільними та дубовими відтінками.",
     image: "/images/bottled/brandson-classic.webp",
-    price: 16400,
+    price: 17400,
   },
   {
     id: "koblevo-selection-vs-05",
@@ -477,7 +477,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "V.S. · 3 роки",
     description: "Трилітній коньяк України з карамельними, фруктовими та дубовими нотами.",
     image: "/images/bottled/koblevo-selection-vs.webp",
-    price: 19300,
+    price: 20300,
   },
   {
     id: "koblevo-grand-vs",
@@ -487,10 +487,10 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "V.S. · 3 роки",
     description: "Квітковий аромат, ваніль, горіх і м’які дубові ноти у теплому післясмаку.",
     image: "/images/bottled/koblevo-grand-vs.webp",
-    price: 9700,
+    price: 10700,
     variants: [
-      { id: "koblevo-grand-vs-025", label: "0,25 л", price: 9700 },
-      { id: "koblevo-grand-vs-05", label: "0,5 л", price: 19400 },
+      { id: "koblevo-grand-vs-025", label: "0,25 л", price: 10700 },
+      { id: "koblevo-grand-vs-05", label: "0,5 л", price: 20400 },
     ],
   },
   {
@@ -501,7 +501,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "V.S.O.P. · 4 роки",
     description: "Витриманий український коньяк із медовими нотами, сухофруктами та ваніллю.",
     image: "/images/bottled/koblevo-mykolaiv-vsop.webp",
-    price: 21000,
+    price: 22000,
   },
   {
     id: "koblevo-grand-reserve-vsop",
@@ -511,10 +511,10 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "V.S.O.P. · 5 років",
     description: "Сухофрукти, лісовий горіх, ваніль і темний шоколад у тривалому післясмаку.",
     image: "/images/bottled/koblevo-grand-reserve-vsop.webp",
-    price: 11400,
+    price: 12400,
     variants: [
-      { id: "koblevo-grand-reserve-vsop-025", label: "0,25 л", price: 11400 },
-      { id: "koblevo-grand-reserve-vsop-05", label: "0,5 л", price: 23300 },
+      { id: "koblevo-grand-reserve-vsop-025", label: "0,25 л", price: 12400 },
+      { id: "koblevo-grand-reserve-vsop-05", label: "0,5 л", price: 24300 },
     ],
   },
   {
@@ -525,7 +525,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Свіже біле сухе вино з фруктовими нотами та м’яким чистим післясмаком.",
     image: "/images/bottled/koblevo-chardonnay.webp",
-    price: 10500,
+    price: 11500,
   },
   {
     id: "koblevo-vilna-ptashka-bottle",
@@ -535,7 +535,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Легке біле сухе вино з делікатною фруктовістю та освіжаючою кислотністю.",
     image: "/images/bottled/koblevo-vilna-ptashka.webp",
-    price: 10500,
+    price: 11500,
   },
   {
     id: "koblevo-mriia-bottle",
@@ -545,7 +545,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Білі квіти, легкі мускатні відтінки та м’який пряний післясмак.",
     image: "/images/bottled/koblevo-mriia.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-muscat-bottle",
@@ -555,7 +555,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Аромат цитрона й пелюсток чайної троянди, округлий та гармонійний смак.",
     image: "/images/bottled/koblevo-muscat.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-exclusive-chardonnay-bottle",
@@ -565,7 +565,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Білі екзотичні фрукти та зелене яблуко у свіжому збалансованому смаку.",
     image: "/images/bottled/koblevo-exclusive-chardonnay.webp",
-    price: 14400,
+    price: 15400,
   },
   {
     id: "koblevo-exclusive-pinot-grigio-bottle",
@@ -575,7 +575,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Квіткові ноти, білі ягоди та легкий освіжаючий смак.",
     image: "/images/bottled/koblevo-exclusive-pinot-grigio.webp",
-    price: 14400,
+    price: 15400,
   },
   {
     id: "koblevo-kleopatra-bottle",
@@ -585,7 +585,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Кріплене",
     description: "Насичене біле кріплене вино з виразним ароматом і теплим післясмаком.",
     image: "/images/bottled/koblevo-kleopatra.webp",
-    price: 15100,
+    price: 16100,
   },
   {
     id: "koblevo-muscat-gold-bottle",
@@ -595,7 +595,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Десертне кріплене",
     description: "Сухофрукти, пелюстки чайної троянди та насичений мускатний аромат.",
     image: "/images/bottled/koblevo-muscat-gold.webp",
-    price: 15100,
+    price: 16100,
   },
   {
     id: "koblevo-red-kalyna-bottle",
@@ -605,7 +605,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Сухе червоне вино з ягідним характером, легкою терпкістю та чистим фіналом.",
     image: "/images/bottled/koblevo-red-kalyna.webp",
-    price: 10500,
+    price: 11500,
   },
   {
     id: "koblevo-saperavi-bottle",
@@ -615,7 +615,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Насичене червоне сухе вино з темними ягодами та приємною терпкістю.",
     image: "/images/bottled/koblevo-saperavi.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-stefaniia-bottle",
@@ -625,7 +625,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "М’яке червоне напівсолодке вино зі стиглими ягодами та округлим смаком.",
     image: "/images/bottled/koblevo-stefaniia.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-bastardo-bottle",
@@ -635,7 +635,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Червона слива, шоколадні відтінки та м’який оксамитовий післясмак.",
     image: "/images/bottled/koblevo-bastardo.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-odeskyi-chornyi-bottle",
@@ -645,7 +645,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Темні ягоди, легкі прянощі та насичений гармонійний смак.",
     image: "/images/bottled/koblevo-odeskyi-chornyi.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "koblevo-cabernet-bottle",
@@ -655,7 +655,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Чорна смородина, вишня та легкі пряні ноти у сухому вині.",
     image: "/images/bottled/koblevo-cabernet.webp",
-    price: 12500,
+    price: 13500,
   },
   {
     id: "koblevo-exclusive-merlot-bottle",
@@ -665,7 +665,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Чорниця, шовковиця, солодкі спеції та помірні таніни.",
     image: "/images/bottled/koblevo-exclusive-merlot.webp",
-    price: 14400,
+    price: 15400,
   },
   {
     id: "koblevo-exclusive-cabernet-bottle",
@@ -675,7 +675,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Сухе",
     description: "Насичений ягідний аромат, благородна терпкість і тривалий післясмак.",
     image: "/images/bottled/koblevo-exclusive-cabernet.webp",
-    price: 14400,
+    price: 15400,
   },
   {
     id: "koblevo-bakkara-bottle",
@@ -685,7 +685,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Кріплене",
     description: "Чорнослив, чорна смородина й шоколад у насиченому кріпленому вині.",
     image: "/images/bottled/koblevo-bakkara.webp",
-    price: 14800,
+    price: 15800,
   },
   {
     id: "koblevo-kagor-ukrainskyi-bottle",
@@ -695,7 +695,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Десертне",
     description: "Глибокий рубіновий колір, стиглі темні ягоди та солодкий оксамитовий смак.",
     image: "/images/bottled/koblevo-kagor-ukrainskyi.webp",
-    price: 15100,
+    price: 16100,
   },
   {
     id: "koblevo-muscat-rose-bottle",
@@ -705,7 +705,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Напівсолодке",
     description: "Пелюстки чайної троянди, солодкі спеції та ніжний ароматний післясмак.",
     image: "/images/bottled/koblevo-muscat-rose.webp",
-    price: 11500,
+    price: 12500,
   },
   {
     id: "marengo-bianco-05",
@@ -715,7 +715,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Білий вермут",
     description: "Легкий ароматний білий вермут для подачі охолодженим або у коктейлях.",
     image: "/images/bottled/marengo-bianco-05.webp",
-    price: 10500,
+    price: 11500,
   },
   {
     id: "marengo-mojito-05",
@@ -725,7 +725,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Аперитив",
     description: "Лайм, лимон, м’ята, імбир і трави зі свіжим м’ятно-цитрусовим фіналом.",
     image: "/images/bottled/marengo-mojito-05.webp",
-    price: 12400,
+    price: 13400,
   },
   {
     id: "marengo-bianco-1l",
@@ -735,7 +735,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Білий вермут",
     description: "Ароматний білий вермут із м’яким трав’яним характером, 1 літр.",
     image: "/images/bottled/marengo-bianco-1l.webp",
-    price: 17000,
+    price: 18000,
   },
   {
     id: "marengo-hawaii-1l",
@@ -745,7 +745,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Аперитив",
     description: "Яскравий тропічний аперитив із фруктовим ароматом, 1 літр.",
     image: "/images/bottled/marengo-hawaii-1l.webp",
-    price: 17000,
+    price: 18000,
   },
   {
     id: "marengo-mojito-1l",
@@ -755,7 +755,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Аперитив",
     description: "Освіжаюче поєднання лайма, лимона, м’яти, імбиру й ароматних трав.",
     image: "/images/bottled/marengo-mojito-1l.webp",
-    price: 21400,
+    price: 22400,
   },
   {
     id: "marengo-pina-colada-1l",
@@ -765,7 +765,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Аперитив",
     description: "Тропічний ананасовий смак із м’якими вершковими відтінками, 1 літр.",
     image: "/images/bottled/marengo-pina-colada-1l.webp",
-    price: 21400,
+    price: 22400,
   },
   {
     id: "marengo-rosso-1l",
@@ -775,7 +775,7 @@ export const catalogProducts: CatalogProduct[] = [
     sort: "Червоний вермут",
     description: "Червоний вермут із виразним пряно-трав’яним ароматом і м’яким солодким смаком.",
     image: "/images/bottled/marengo-rosso-1l.webp",
-    price: 23200,
+    price: 24200,
   },
 ];
 

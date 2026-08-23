@@ -912,6 +912,9 @@ export default function Home() {
                       <span>Разом</span>
                       <span>{formatPrice(total)}</span>
                     </div>
+                    <p className="mt-2 text-sm font-semibold text-amber-300">
+                      Ціна вказана без урахування вартості доставки.
+                    </p>
 
                     <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-black/20 p-4">
                       <div className="grid gap-3">
@@ -1012,7 +1015,8 @@ export default function Home() {
                       <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
                         <p className="text-sm font-semibold text-amber-300">Підтвердження замовлення</p>
                         <p className="mt-1 text-sm text-white/70">
-                          Після оформлення ми зв’яжемося з вами та уточнимо всі деталі.
+                          Після оформлення ми зв’яжемося з вами та уточнимо всі деталі. Вартість доставки
+                          сплачується окремо та не входить у загальну суму замовлення.
                         </p>
                       </div>
 
