@@ -169,6 +169,7 @@ function buildOrderText(payload: OrderPayload) {
     ),
     "",
     `Загальна сума: ${(total / 100).toFixed(2).replace(".", ",")} грн`,
+    "Вартість доставки не врахована в загальній сумі.",
     "",
   ];
 
