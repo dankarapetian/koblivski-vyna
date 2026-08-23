@@ -4,7 +4,7 @@ import AgeGate from "./AgeGate";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin, Search } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, Wine, X, ShieldCheck, Truck, MessageCircle, ArrowRight, ArrowUp, Check, Clock3, PackageCheck, Sparkles, Eye, Phone, MapPin, Search } from "lucide-react";
 import { catalogProducts, getCatalogProductById, type CatalogProduct } from "@/lib/catalog";
 
 type Product = CatalogProduct;
@@ -1070,6 +1070,16 @@ export default function Home() {
           </>
         )}
       </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Повернутися на початок сторінки"
+        title="На початок сторінки"
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-red-700 text-white shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition hover:-translate-y-1 hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:bottom-7 sm:right-7 sm:h-14 sm:w-14"
+      >
+        <ArrowUp size={22} strokeWidth={2.5} aria-hidden="true" />
+      </button>
   
     </main>
     </>);
