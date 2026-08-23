@@ -8,6 +8,7 @@ import {
 } from "@/lib/security";
 
 const MAX_BODY_BYTES = 8_000;
+const CONTACT_FIELDS = new Set(["requestId", "startedAt", "website", "name", "phone", "message"]);
 
 type ContactPayload = {
   requestId: string;
@@ -23,9 +24,16 @@ function cleanText(value: unknown, maxLength: number) {
 }
 
 function normalizePayload(value: unknown): ContactPayload | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const input = value as Record<string, unknown>;
+  if (Object.keys(input).some((key) => !CONTACT_FIELDS.has(key))) return null;
+  if (typeof input.requestId !== "string" || input.requestId.length > 80) return null;
+  if (typeof input.name !== "string" || input.name.length > 80) return null;
+  if (typeof input.phone !== "string" || input.phone.length > 30) return null;
+  if (typeof input.message !== "string" || input.message.length > 1000) return null;
+  if (input.website !== undefined && (typeof input.website !== "string" || input.website.length > 200)) return null;
+
   const requestId = cleanText(input.requestId, 80);
   const name = cleanText(input.name, 80);
   const phone = cleanText(input.phone, 30);
@@ -61,7 +69,8 @@ export async function POST(request: NextRequest) {
     return json({ error: "Запит відхилено." }, 403);
   }
 
-  if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+  const mediaType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (mediaType !== "application/json") {
     return json({ error: "Потрібен JSON-запит." }, 415);
   }
 
@@ -118,6 +127,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export function GET() {
+function methodNotAllowed() {
   return json({ error: "Method not allowed" }, 405, { Allow: "POST" });
 }
+
+export const GET = methodNotAllowed;
+export const HEAD = methodNotAllowed;
+export const PUT = methodNotAllowed;
+export const PATCH = methodNotAllowed;
+export const DELETE = methodNotAllowed;
+export const OPTIONS = methodNotAllowed;
