@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import LegalSeller from "./LegalSeller";
 import "./globals.css";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://koblivski-vyna.vercel.app"),
   title: "Коблівські Вина — замовлення вин онлайн",
-  description: "Добірні білі, червоні, рожеві та ігристі вина. Зручне оформлення замовлення та доставка по Україні.",
+  description: "Добірні білі, червоні, рожеві та ігристі вина. Залиште заявку на замовлення — продавець підтвердить наявність та умови отримання.",
   openGraph: {
     title: "Коблівські Вина",
-    description: "Оберіть улюблений напій та оформіть замовлення без зайвих кроків.",
+    description: "Оберіть напої та залиште заявку на замовлення без зайвих кроків.",
     url: "/",
     siteName: "Коблівські Вина",
     locale: "uk_UA",
@@ -41,6 +41,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <LegalSeller />
         <Analytics />
       </body>
     </html>
