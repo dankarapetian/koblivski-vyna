@@ -1,80 +1,57 @@
-import Link from "next/link";
+"use client";
+
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export default function LegalSeller() {
-  return (
-    <section className="border-t border-white/10 bg-[#080808] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl rounded-3xl border border-white/10 bg-white/[0.04] p-6 md:p-8">
-        <div className="flex flex-col gap-7 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-red-300">
-              Ліцензія та інформація про продавця
-            </p>
-            <h2 className="mt-3 text-2xl font-black md:text-3xl">
-              ФОП КАРАПЕТЯН ІШХАН МЕСРОПОВИЧ
-            </h2>
-            <p className="mt-4 text-sm leading-6 text-white/60">
-              Продаж алкогольних напоїв здійснюється ФОП КАРАПЕТЯН ІШХАН МЕСРОПОВИЧ
-              з ліцензованого місця роздрібної торгівлі. Сайт приймає заявки на
-              замовлення; наявність, умови отримання та продаж підтверджуються продавцем.
-            </p>
-          </div>
+  const [target, setTarget] = useState<Element | null>(null);
 
-          <span className="w-fit rounded-full border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-200">
-            Ліцензія діє
-          </span>
-        </div>
+  useEffect(() => {
+    const footer = document.querySelector("footer#kontakt");
+    if (!footer) return;
 
-        <div className="mt-8 grid gap-4 text-sm md:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <p className="text-white/45">РНОКПП</p>
-            <p className="mt-2 font-semibold text-white/85">2903102012</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <p className="text-white/45">Вид ліцензії</p>
-            <p className="mt-2 font-semibold leading-6 text-white/85">
-              На право роздрібної торгівлі алкогольними напоями
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <p className="text-white/45">Реєстраційний номер ліцензії</p>
-            <p className="mt-2 break-all font-semibold text-white/85">14030308202501505</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <p className="text-white/45">Дата початку дії</p>
-            <p className="mt-2 font-semibold text-white/85">14.06.2025</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5 md:col-span-2">
-            <p className="text-white/45">Місце роздрібної торгівлі</p>
-            <p className="mt-2 font-semibold leading-6 text-white/85">
-              Миколаївська область, Миколаївський район, с. Коблеве, вул. Степова, 1
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5 md:col-span-2">
-            <p className="text-white/45">Місцезнаходження ліцензіата</p>
-            <p className="mt-2 font-semibold leading-6 text-white/85">
-              Україна, 57453, Миколаївська область, Миколаївський район, Коблівська ТГ,
-              с. Коблеве, вул. Набережна, буд. 16
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-            <p className="text-white/45">Орган ліцензування</p>
-            <p className="mt-2 font-semibold leading-6 text-white/85">
-              Головне управління ДПС у Миколаївській області
-            </p>
-          </div>
-        </div>
+    const sections = Array.from(footer.querySelectorAll(":scope > div > div"));
+    const importantInfo = sections.find((section) =>
+      Array.from(section.querySelectorAll("p")).some(
+        (paragraph) => paragraph.textContent?.trim() === "Важлива інформація"
+      )
+    );
 
-        <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 border-t border-white/10 pt-6 text-xs text-white/50">
-          <span>Продаж алкогольних напоїв — лише особам 18+</span>
-          <span>Вартість доставки не включена у вартість замовлення та розраховується окремо.</span>
-          <Link href="/terms" className="font-semibold text-white/70 hover:text-white">
-            Умови замовлення
-          </Link>
-          <Link href="/privacy" className="font-semibold text-white/70 hover:text-white">
-            Політика конфіденційності
-          </Link>
-        </div>
+    if (importantInfo) setTarget(importantInfo);
+  }, []);
+
+  if (!target) return null;
+
+  return createPortal(
+    <div className="mt-4 border-t border-white/10 pt-4 text-xs leading-5 text-white/45">
+      <p className="font-bold text-white/75">Ліцензія та продавець</p>
+      <div className="mt-2 space-y-1.5">
+        <p><span className="text-white/60">Продавець:</span> ФОП КАРАПЕТЯН ІШХАН МЕСРОПОВИЧ</p>
+        <p><span className="text-white/60">РНОКПП:</span> 2903102012</p>
+        <p><span className="text-white/60">Ліцензія:</span> на право роздрібної торгівлі алкогольними напоями</p>
+        <p><span className="text-white/60">Реєстраційний номер:</span> 14030308202501505</p>
+        <p><span className="text-white/60">Статус:</span> діє</p>
+        <p><span className="text-white/60">Дата початку дії:</span> 14.06.2025</p>
+        <p>
+          <span className="text-white/60">Місце роздрібної торгівлі:</span> Миколаївська область,
+          Миколаївський район, с. Коблеве, вул. Степова, 1
+        </p>
+        <p>
+          <span className="text-white/60">Місцезнаходження ліцензіата:</span> Україна, 57453,
+          Миколаївська область, Миколаївський район, Коблівська ТГ, с. Коблеве,
+          вул. Набережна, буд. 16
+        </p>
+        <p>
+          <span className="text-white/60">Орган ліцензування:</span> Головне управління ДПС у
+          Миколаївській області
+        </p>
       </div>
-    </section>
+
+      <div className="mt-3 space-y-1.5 text-white/40">
+        <p>Сайт приймає заявки на замовлення. Продаж здійснюється продавцем з ліцензованого місця роздрібної торгівлі.</p>
+        <p>Вартість доставки не включена у вартість замовлення та розраховується окремо.</p>
+      </div>
+    </div>,
+    target
   );
 }
