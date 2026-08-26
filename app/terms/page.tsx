@@ -1,5 +1,59 @@
-import { permanentRedirect } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Умови замовлення | Коблевські вина",
+  description: "Умови замовлення на сайті Коблевські вина.",
+  alternates: {
+    canonical: "/terms",
+  },
+  robots: {
+    index: false,
+    follow: true,
+    googleBot: {
+      index: false,
+      follow: true,
+    },
+  },
+};
 
 export default function TermsPage() {
-  permanentRedirect("/");
+  return (
+    <main className="min-h-screen bg-black px-6 py-16 text-white">
+      <article className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-white/[0.06] p-7 md:p-12">
+        <Link href="/" className="text-sm font-bold text-red-300 hover:text-red-200">← Повернутися до магазину</Link>
+        <h1 className="mt-8 text-4xl font-black">Умови замовлення</h1>
+        <div className="mt-8 space-y-6 leading-7 text-white/70">
+          <section>
+            <h2 className="text-xl font-bold text-white">Продавець</h2>
+            <p className="mt-2">Продавцем алкогольних напоїв є ФІЗИЧНА ОСОБА-ПІДПРИЄМЕЦЬ КАРАПЕТЯН ІШХАН МЕСРОПОВИЧ, РНОКПП 2903102012. Продаж здійснюється з ліцензованого місця роздрібної торгівлі: Миколаївська область, Миколаївський район, с. Коблеве, вул. Степова, 1.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Ліцензія</h2>
+            <p className="mt-2">Ліцензія на право роздрібної торгівлі алкогольними напоями, реєстраційний номер 14030308202501505, дата початку дії — 14.06.2025. Стан ліцензії — діє. Орган ліцензування: Головне управління ДПС у Миколаївській області.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Оформлення</h2>
+            <p className="mt-2">Надсилання форми на сайті є заявкою на замовлення і саме по собі не означає завершення продажу. Після отримання заявки продавець зв’язується з покупцем для підтвердження наявності, актуальної вартості, способу отримання та інших деталей.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Вік покупця</h2>
+            <p className="mt-2">Алкогольні напої продаються лише особам, яким виповнилося 18 років. Під час підтвердження або передачі замовлення продавець чи особа, яка здійснює передачу, може вимагати документ, що підтверджує вік отримувача. Якщо вік неможливо підтвердити або отримувачу не виповнилося 18 років, алкогольні напої не передаються.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Ціна та наявність</h2>
+            <p className="mt-2">Ціна товару відображається на сайті. Остаточна наявність товару та деталі замовлення підтверджуються під час зв’язку з покупцем.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Отримання та доставка</h2>
+            <p className="mt-2">Спосіб, вартість і строки доставки або самовивозу погоджуються під час підтвердження замовлення. Вартість доставки не включена у вартість замовлення та розраховується окремо.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-bold text-white">Місцезнаходження ліцензіата</h2>
+            <p className="mt-2">Україна, 57453, Миколаївська область, Миколаївський район, Коблівська територіальна громада, с. Коблеве, вул. Набережна, буд. 16.</p>
+          </section>
+        </div>
+      </article>
+    </main>
+  );
 }
