@@ -4,6 +4,8 @@ import { Analytics } from "@vercel/analytics/next";
 import LicenseMenuPortal from "./LicenseMenuPortal";
 import "./globals.css";
 
+const SITE_URL = "https://www.koblevski-vyna.com";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://koblevski-vyna.com"),
+  metadataBase: new URL(SITE_URL),
   title: "Коблевські вина — натуральні вина та напої",
   description:
     "Коблевські вина — натуральні білі, червоні, рожеві, ігристі та розливні вина. Ознайомтесь з асортиментом, цінами та оформіть замовлення онлайн.",
@@ -55,11 +57,11 @@ export const metadata: Metadata = {
 const localBusinessJsonLd = {
   "@context": "https://schema.org",
   "@type": "LiquorStore",
-  "@id": "https://koblevski-vyna.com/#store",
+  "@id": `${SITE_URL}/#store`,
   name: "Коблевські Вина",
-  url: "https://koblevski-vyna.com/",
+  url: `${SITE_URL}/`,
   telephone: "+380679110368",
-  image: "https://koblevski-vyna.com/images/hero-wine.jpg",
+  image: `${SITE_URL}/images/hero-wine.jpg`,
   address: {
     "@type": "PostalAddress",
     streetAddress: "вулиця Степова, 3",
