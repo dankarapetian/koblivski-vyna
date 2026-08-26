@@ -1,4 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Політика конфіденційності | Коблевські вина",
+  description: "Політика конфіденційності сайту Коблевські вина.",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: false,
+    follow: true,
+    googleBot: {
+      index: false,
+      follow: true,
+    },
+  },
+};
 
 export default function PrivacyPage() {
   return (
