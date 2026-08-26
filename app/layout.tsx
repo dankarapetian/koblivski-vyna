@@ -52,6 +52,40 @@ export const metadata: Metadata = {
   },
 };
 
+const localBusinessJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "LiquorStore",
+  "@id": "https://koblevski-vyna.com/#store",
+  name: "Коблевські Вина",
+  url: "https://koblevski-vyna.com/",
+  telephone: "+380679110368",
+  image: "https://koblevski-vyna.com/images/hero-wine.jpg",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "вулиця Степова, 3",
+    addressLocality: "Коблеве",
+    addressRegion: "Миколаївська область",
+    postalCode: "57454",
+    addressCountry: "UA",
+  },
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: [
+        "https://schema.org/Monday",
+        "https://schema.org/Tuesday",
+        "https://schema.org/Wednesday",
+        "https://schema.org/Thursday",
+        "https://schema.org/Friday",
+        "https://schema.org/Saturday",
+        "https://schema.org/Sunday",
+      ],
+      opens: "08:00",
+      closes: "22:30",
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -63,6 +97,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+        />
         {children}
         <LicenseMenuPortal />
         <Analytics />
