@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import LicenseMenuPortal from "./LicenseMenuPortal";
 import "./globals.css";
 
-const SITE_URL = "https://www.koblevski-vyna.com";
+const SITE_URL = "https://koblevski-vyna.com";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
