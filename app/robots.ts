@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://koblevski-vyna.com/sitemap.xml",
-    host: "https://koblevski-vyna.com",
+    sitemap: "https://www.koblevski-vyna.com/sitemap.xml",
+    host: "https://www.koblevski-vyna.com",
   };
 }
