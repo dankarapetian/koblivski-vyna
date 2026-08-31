@@ -10,10 +10,10 @@ const nextConfig: NextConfig = {
           {
             type: "header",
             key: "host",
-            value: "koblevski-vyna\\.com",
+            value: "www\\.koblevski-vyna\\.com",
           },
         ],
-        destination: "https://www.koblevski-vyna.com/:path*",
+        destination: "https://koblevski-vyna.com/:path*",
         permanent: true,
       },
     ];
