@@ -2,22 +2,6 @@ import type { NextConfig } from "next";
 import { createSecurityHeaders } from "@/lib/security";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: "/:path*",
-        has: [
-          {
-            type: "header",
-            key: "host",
-            value: "www\\.koblevski-vyna\\.com",
-          },
-        ],
-        destination: "https://koblevski-vyna.com/:path*",
-        permanent: true,
-      },
-    ];
-  },
   async headers() {
     return [
       {
